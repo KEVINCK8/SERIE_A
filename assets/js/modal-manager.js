@@ -29,11 +29,11 @@ class ModalManager {
         const toast = document.createElement('div');
         toast.className = `toast-notification ${type}`;
         
-        const icon = this._getIconForType(type);
+        const iconHtml = this._getIconForType(type);
         
         toast.innerHTML = `
             <div class="toast-content">
-                <i class="${icon}"></i>
+                ${iconHtml}
                 <span>${message}</span>
             </div>
             <div class="toast-progress"></div>
@@ -127,11 +127,12 @@ class ModalManager {
     }
 
     _getIconForType(type) {
+        const path = 'assets/image/icon/';
         switch (type) {
-            case 'success': return 'fas fa-check-circle';
-            case 'error': return 'fas fa-exclamation-circle';
-            case 'warning': return 'fas fa-exclamation-triangle';
-            default: return 'fas fa-info-circle';
+            case 'success': return `<img src="${path}007-trophy.png" style="width:24px; height:24px;">`;
+            case 'error': return `<img src="${path}026-bomb.png" style="width:24px; height:24px;">`;
+            case 'warning': return `<img src="${path}030-blasting.png" style="width:24px; height:24px;">`;
+            default: return `<img src="${path}017-football-card.png" style="width:24px; height:24px;">`;
         }
     }
 }

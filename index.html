@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Serie A SBT - Super App</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
@@ -15,12 +13,12 @@
         <!-- Navigation - Floating Bottom Pill -->
         <nav id="main-nav" class="hidden">
             <div class="mobile-nav">
-                <a href="#" data-view="dashboard" class="active"><i class="fas fa-house-chimney"></i><span>Home</span></a>
-                <a href="#" data-view="predictions" id="nav-predictions"><i class="fas fa-pen-to-square"></i><span>Pronostici</span></a>
-                <a href="#" data-view="results" id="nav-results"><i class="fas fa-chart-simple"></i><span>Risultati</span></a>
-                <a href="#" data-view="leaderboard" id="nav-leaderboard"><i class="fas fa-ranking-star"></i><span>Classifica</span></a>
-                <a href="#" data-view="admin" id="nav-admin" class="hidden"><i class="fas fa-shield-halved"></i><span>Admin</span></a>
-                <a href="#" data-view="settings"><i class="fas fa-user-gear"></i><span>Menu</span></a>
+                <a href="#" data-view="dashboard" class="active"><img src="assets/image/icon/011-arena.png" class="nav-icon"><span>Home</span></a>
+                <a href="#" data-view="predictions" id="nav-predictions"><img src="assets/image/icon/017-football-card.png" class="nav-icon"><span>Pronostici</span></a>
+                <a href="#" data-view="results" id="nav-results"><img src="assets/image/icon/010-cup.png" class="nav-icon"><span>Risultati</span></a>
+                <a href="#" data-view="leaderboard" id="nav-leaderboard"><img src="assets/image/icon/007-trophy.png" class="nav-icon"><span>Classifica</span></a>
+                <a href="#" data-view="admin" id="nav-admin" class="hidden"><img src="assets/image/icon/087-shield.png" class="nav-icon"><span>Admin</span></a>
+                <a href="#" data-view="settings"><img src="assets/image/icon/088-man.png" class="nav-icon"><span>Menu</span></a>
             </div>
         </nav>
 
@@ -105,26 +103,26 @@
                         <!-- iOS Shortcut Grid -->
                         <div class="shortcut-grid">
                             <div class="shortcut-item glass-card" onclick="navigateTo('predictions')">
-                                <div class="shortcut-icon"><i class="fas fa-pen-nib"></i></div>
+                                <div class="shortcut-icon"><img src="assets/image/icon/099-creative-writing.png" class="nav-icon"></div>
                                 <span class="shortcut-label">Pronostici</span>
                             </div>
                             <div class="shortcut-item glass-card" onclick="navigateTo('results')">
-                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #10b981, #3b82f6);"><i class="fas fa-calendar-check"></i></div>
+                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #10b981, #3b82f6);"><img src="assets/image/icon/001-football-shirt.png" class="nav-icon"></div>
                                 <span class="shortcut-label">Risultati</span>
                             </div>
                             <div class="shortcut-item glass-card" onclick="navigateTo('leaderboard')">
-                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #f59e0b, #ef4444);"><i class="fas fa-trophy"></i></div>
+                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #f59e0b, #ef4444);"><img src="assets/image/icon/007-trophy.png" class="nav-icon"></div>
                                 <span class="shortcut-label">Classifica</span>
                             </div>
                             <div class="shortcut-item glass-card" onclick="navigateTo('settings')">
-                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #94a3b8, #475569);"><i class="fas fa-user"></i></div>
+                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #94a3b8, #475569);"><img src="assets/image/icon/088-man.png" class="nav-icon"></div>
                                 <span class="shortcut-label">Profilo</span>
                             </div>
                             <div class="shortcut-item glass-card hidden" onclick="navigateTo('admin')">
-                                <div class="shortcut-icon" style="background: var(--primary-gradient);"><i class="fas fa-shield-halved"></i></div>
+                                <div class="shortcut-icon" style="background: var(--primary-gradient);"><img src="assets/image/icon/087-shield.png" class="nav-icon"></div>
                                 <span class="shortcut-label">Admin</span>
                             </div>
-                        </div>4
+                        </div>
 
                         <!-- Mini Stats Card -->
                         <div class="glass-card" style="padding: 20px;">
@@ -151,8 +149,9 @@
 
                     <div class="profile-header glass-card">
                         <div class="profile-avatar-container">
-                            <div class="profile-avatar">
-                                <i class="fas fa-user"></i>
+                            <div class="profile-avatar" id="profile-avatar-clickable">
+                                <img src="assets/image/icon/088-man.png" alt="Avatar" id="current-profile-img">
+                                <div class="edit-badge"><img src="assets/image/icon/099-creative-writing.png"></div>
                             </div>
                         </div>
                         <div class="profile-stats">
@@ -169,43 +168,43 @@
 
                     <div class="menu-sections">
                         <div class="menu-item glass-card" id="btn-select-icon">
-                            <i class="fas fa-face-smile"></i>
+                            <img src="assets/image/icon/064-mushroom.png" class="menu-icon">
                             <div class="menu-item-text">
                                 <h4>Cambia Icona Profilo</h4>
                                 <p>Scegli il tuo avatar unico</p>
                             </div>
-                            <i class="fas fa-chevron-right" style="font-size: 0.8rem; background: none; color: var(--text-muted);"></i>
+                            <img src="assets/image/icon/045-play.png" style="width: 15px; opacity: 0.5;">
                         </div>
 
                         <div class="menu-item glass-card" id="btn-change-password">
-                            <i class="fas fa-key"></i>
+                            <img src="assets/image/icon/073-thief.png" class="menu-icon">
                             <div class="menu-item-text">
                                 <h4>Cambia Password</h4>
                                 <p>Aggiorna le tue credenziali di accesso</p>
                             </div>
-                            <i class="fas fa-chevron-right" style="font-size: 0.8rem; background: none; color: var(--text-muted);"></i>
+                            <img src="assets/image/icon/045-play.png" style="width: 15px; opacity: 0.5;">
                         </div>
 
                         <div class="menu-item glass-card" id="btn-personal-info">
-                            <i class="fas fa-id-card"></i>
+                            <img src="assets/image/icon/017-football-card.png" class="menu-icon">
                             <div class="menu-item-text">
                                 <h4>Informazioni Personali</h4>
                                 <p id="profile-email-display">email@example.com</p>
                             </div>
-                            <i class="fas fa-chevron-right" style="font-size: 0.8rem; background: none; color: var(--text-muted);"></i>
+                            <img src="assets/image/icon/045-play.png" style="width: 15px; opacity: 0.5;">
                         </div>
 
                         <div class="menu-item glass-card hidden" id="btn-manage-users">
-                            <i class="fas fa-users-gear"></i>
+                            <img src="assets/image/icon/077-hacker.png" class="menu-icon">
                             <div class="menu-item-text">
                                 <h4>Gestione Utenti</h4>
                                 <p>Modifica ruoli o rimuovi partecipanti</p>
                             </div>
-                            <i class="fas fa-chevron-right" style="font-size: 0.8rem; background: none; color: var(--text-muted);"></i>
+                            <img src="assets/image/icon/045-play.png" style="width: 15px; opacity: 0.5;">
                         </div>
 
                         <div class="menu-item glass-card danger" id="btn-delete-account">
-                            <i class="fas fa-user-slash"></i>
+                            <img src="assets/image/icon/026-bomb.png" class="menu-icon">
                             <div class="menu-item-text">
                                 <h4>Elimina Account</h4>
                                 <p>Rimuovi definitivamente i tuoi dati</p>
@@ -213,7 +212,7 @@
                         </div>
 
                         <div class="menu-item glass-card" id="logout-btn" style="margin-top: 10px;">
-                            <i class="fas fa-sign-out-alt" style="color: var(--text-muted);"></i>
+                            <img src="assets/image/icon/068-spaceship.png" class="menu-icon">
                             <div class="menu-item-text">
                                 <h4>Logout</h4>
                                 <p>Esci dalla sessione corrente</p>
@@ -266,8 +265,8 @@
                     <header class="view-header">
                         <h1>Pannello Admin</h1>
                         <div class="admin-top-actions">
-                            <button id="import-calendar-btn" class="btn-secondary btn-sm"><i class="fas fa-file-import"></i> Importa</button>
-                            <button id="add-match-btn" class="btn-primary btn-sm"><i class="fas fa-plus"></i> Nuova Partita</button>
+                            <button id="import-calendar-btn" class="btn-secondary btn-sm"><img src="assets/image/icon/100-letter.png" style="width: 16px; margin-right: 5px;"> Importa</button>
+                            <button id="add-match-btn" class="btn-primary btn-sm"><img src="assets/image/icon/007-trophy.png" style="width: 16px; margin-right: 5px;"> Nuova Partita</button>
                         </div>
                     </header>
 
@@ -281,7 +280,7 @@
 
                     <!-- Matchday Management (Lock/Notes) -->
                     <div class="admin-section glass-card" style="padding: 20px; margin-bottom: 25px;">
-                        <h3 class="section-title"><i class="fas fa-lock-open"></i> Gestione Blocco</h3>
+                        <h3 class="section-title"><img src="assets/image/icon/087-shield.png" style="width: 20px; margin-right: 10px;"> Gestione Blocco</h3>
                         <form id="matchday-lock-form" class="lock-form-grid">
                             <div class="input-group">
                                 <label>Scadenza Pronostici</label>
@@ -292,8 +291,8 @@
                                 <input type="text" id="matchday-notes" placeholder="Esempio: Giornata bonus...">
                             </div>
                             <div class="lock-actions">
-                                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salva</button>
-                                <button type="button" id="remove-lock-btn" class="btn-danger"><i class="fas fa-trash"></i> Rimuovi</button>
+                                <button type="submit" class="btn-primary"><img src="assets/image/icon/024-money.png" style="width: 18px; margin-right: 8px;"> Salva</button>
+                                <button type="button" id="remove-lock-btn" class="btn-danger"><img src="assets/image/icon/026-bomb.png" style="width: 18px; margin-right: 8px;"> Rimuovi</button>
                             </div>
                         </form>
                         <div id="current-lock-info" class="lock-info-badge"></div>
@@ -301,7 +300,7 @@
 
                     <!-- Matches Management -->
                     <div class="admin-section">
-                        <h3 class="section-title"><i class="fas fa-futbol"></i> Risultati Partite</h3>
+                        <h3 class="section-title"><img src="assets/image/icon/023-football.png" style="width: 20px; margin-right: 10px;"> Risultati Partite</h3>
                         <div id="admin-matches-list" class="admin-matches matches-grid">
                             <!-- Admin matches will be injected here -->
                         </div>
@@ -344,7 +343,7 @@
                 </div>
                 <div id="user-profile-view" class="view hidden">
                     <header class="view-header">
-                        <button class="btn-back" id="profile-back-btn"><i class="fas fa-arrow-left"></i></button>
+                        <button class="btn-back" id="profile-back-btn"><img src="assets/image/icon/045-play.png" style="width: 15px; transform: rotate(180deg); opacity: 0.7;"></button>
                         <h1 id="profile-username">Dettaglio Utente</h1>
                     </header>
                     <div id="profile-predictions-list" class="matches-grid"></div>
@@ -353,7 +352,7 @@
                 <!-- User Management View (Admin Only) -->
                 <div id="user-management-view" class="view hidden">
                     <header class="view-header">
-                        <button class="btn-back" onclick="navigateTo('settings')"><i class="fas fa-arrow-left"></i></button>
+                        <button class="btn-back" onclick="navigateTo('settings')"><img src="assets/image/icon/045-play.png" style="width: 15px; transform: rotate(180deg); opacity: 0.7;"></button>
                         <h1>Gestione Utenti</h1>
                     </header>
                     <div class="search-container glass-card" style="margin-bottom: 20px; padding: 10px 15px;">

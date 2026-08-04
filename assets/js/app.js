@@ -17,52 +17,7 @@ let userDocUnsubscribe = null;
 // Percorso base per le icone immagine
 const IMAGE_ICONS_PATH = 'assets/image/icon/';
 
-// Lista icone FontAwesome predefinite
-const FA_ICONS = [
-    // Personaggi & Ruoli (Blue/Cyan)
-    { id: 'fa-user', color: '#38bdf8' }, { id: 'fa-user-ninja', color: '#38bdf8' }, 
-    { id: 'fa-user-astronaut', color: '#38bdf8' }, { id: 'fa-user-secret', color: '#38bdf8' }, 
-    { id: 'fa-user-tie', color: '#38bdf8' }, { id: 'fa-user-graduate', color: '#38bdf8' },
-    { id: 'fa-user-gear', color: '#38bdf8' }, { id: 'fa-user-doctor', color: '#38bdf8' },
-    
-    // Animali (Orange/Gold/Brown)
-    { id: 'fa-cat', color: '#fb923c' }, { id: 'fa-dog', color: '#fb923c' }, 
-    { id: 'fa-hippo', color: '#fb923c' }, { id: 'fa-horse', color: '#fb923c' }, 
-    { id: 'fa-dove', color: '#fb923c' }, { id: 'fa-spider', color: '#fb923c' },
-    { id: 'fa-fish', color: '#fb923c' }, { id: 'fa-dragon', color: '#fb923c' },
-    { id: 'fa-otter', color: '#fb923c' }, { id: 'fa-frog', color: '#fb923c' },
-    { id: 'fa-crow', color: '#fb923c' }, { id: 'fa-worm', color: '#fb923c' },
-    { id: 'fa-shrimp', color: '#fb923c' }, { id: 'fa-bug', color: '#fb923c' },
-    { id: 'fa-locust', color: '#fb923c' }, { id: 'fa-mosquito', color: '#fb923c' },
-    
-    // Sport & Gaming (Green/Emerald/Yellow)
-    { id: 'fa-soccer-ball', color: '#10b981' }, { id: 'fa-trophy', color: '#f59e0b' }, 
-    { id: 'fa-medal', color: '#f59e0b' }, { id: 'fa-gamepad', color: '#10b981' }, 
-    { id: 'fa-keyboard', color: '#10b981' }, { id: 'fa-headset', color: '#10b981' },
-    { id: 'fa-mouse', color: '#10b981' }, { id: 'fa-bowling-ball', color: '#10b981' },
-    { id: 'fa-basketball', color: '#10b981' }, { id: 'fa-football', color: '#10b981' },
-    { id: 'fa-baseball', color: '#10b981' }, { id: 'fa-volleyball', color: '#10b981' },
-    
-    // Bandiere & Simboli Globali (Red/Rose/Green)
-    { id: 'fa-flag', color: '#f43f5e' }, { id: 'fa-flag-checkered', color: '#ffffff' },
-    { id: 'fa-earth-europe', color: '#34d399' }, { id: 'fa-earth-americas', color: '#34d399' },
-    { id: 'fa-earth-asia', color: '#34d399' }, { id: 'fa-earth-africa', color: '#34d399' },
-    { id: 'fa-map-location-dot', color: '#f43f5e' }, { id: 'fa-plane', color: '#f43f5e' },
-    { id: 'fa-rocket', color: '#f43f5e' }, { id: 'fa-space-shuttle', color: '#f43f5e' },
-    { id: 'fa-mountain-sun', color: '#f43f5e' }, { id: 'fa-anchor', color: '#f43f5e' },
-    { id: 'fa-sun', color: '#fbbf24' }, { id: 'fa-cloud-sun', color: '#fbbf24' },
-    
-    // Simboli & Tech (Purple/Violet/Pink)
-    { id: 'fa-fire', color: '#f87171' }, { id: 'fa-bolt', color: '#fbbf24' }, 
-    { id: 'fa-ghost', color: '#a78bfa' }, { id: 'fa-robot', color: '#a78bfa' }, 
-    { id: 'fa-mask', color: '#a78bfa' }, { id: 'fa-shield-halved', color: '#a78bfa' }, 
-    { id: 'fa-crown', color: '#fbbf24' }, { id: 'fa-diamond', color: '#38bdf8' },
-    { id: 'fa-heart', color: '#f43f5e' }, { id: 'fa-star', color: '#fbbf24' },
-    { id: 'fa-meteor', color: '#fbbf24' }, { id: 'fa-moon', color: '#a78bfa' },
-    { id: 'fa-skull', color: '#94a3b8' }, { id: 'fa-gem', color: '#38bdf8' }
-];
-
-// Lista icone immagine caricate dinamicamente (da aggiornare se aggiungi file)
+// Lista icone immagine caricate dinamicamente (asset locali)
 const IMAGE_ICONS = [
     '001-football-shirt.png', '002-maradona.png', '003-football-jersey.png', '004-football-jersey-1.png', '005-cleat.png',
     '006-football-jersey-2.png', '007-trophy.png', '008-africa.png', '009-horse.png', '010-cup.png',
@@ -86,42 +41,35 @@ const IMAGE_ICONS = [
     '096-dinosaur-1.png', '097-fossil.png', '098-spinosaurus.png', '099-creative-writing.png', '100-letter.png'
 ];
 
-// Uniamo le icone in un unico array gestibile dal selettore
-const AVAILABLE_ICONS = [
-    ...FA_ICONS,
-    ...IMAGE_ICONS.map(img => ({ id: img, isImage: true, color: '#38bdf8' }))
-];
+// Usiamo solo le icone immagine locali (assets)
+const AVAILABLE_ICONS = IMAGE_ICONS.map(img => ({ id: img, isImage: true, color: '#38bdf8' }));
 
 function getIconColor(iconId) {
-    const icon = AVAILABLE_ICONS.find(i => i.id === iconId);
-    return icon ? icon.color : '#38bdf8';
+    return '#38bdf8'; // Colore predefinito per tutte le icone asset
 }
 
 /**
  * Aggiorna l'interfaccia dell'avatar ovunque sia presente (Dashboard e Impostazioni)
- * @param {string} photoURL - L'ID dell'icona (FontAwesome class o nome file immagine)
+ * @param {string} photoURL - L'ID dell'icona (nome file immagine)
  */
 function updateUserAvatarUI(photoURL) {
     const color = getIconColor(photoURL);
     
     // Funzione helper per generare l'HTML dell'icona
     const getIconHTML = (id, style = "") => {
-        if (!id) return `<i class="fas fa-user" style="${style}"></i>`;
-        if (id.endsWith('.png') || id.endsWith('.jpg') || id.endsWith('.svg')) {
-            return `<img src="${IMAGE_ICONS_PATH}${id}" alt="Avatar" style="${style}">`;
-        }
-        return `<i class="fas ${id}" style="${style}"></i>`;
+        if (!id || !id.endsWith('.png')) return `<img src="${IMAGE_ICONS_PATH}088-man.png" alt="Avatar" style="${style}">`;
+        return `<img src="${IMAGE_ICONS_PATH}${id}" alt="Avatar" style="${style}">`;
     };
 
     // 1. Aggiorna shortcut icon nella dashboard (se presente)
     const profileShortcutIcon = document.querySelector('.shortcut-item[onclick="navigateTo(\'settings\')"] .shortcut-icon');
     if (profileShortcutIcon) {
         if (photoURL) {
-            profileShortcutIcon.innerHTML = getIconHTML(photoURL, "color: white");
+            profileShortcutIcon.innerHTML = getIconHTML(photoURL);
             profileShortcutIcon.style.background = `linear-gradient(135deg, ${color}, rgba(0,0,0,0.4))`;
             profileShortcutIcon.style.boxShadow = `0 10px 20px ${color}44`;
         } else {
-            profileShortcutIcon.innerHTML = `<i class="fas fa-user"></i>`;
+            profileShortcutIcon.innerHTML = `<img src="${IMAGE_ICONS_PATH}088-man.png" alt="Avatar">`;
             profileShortcutIcon.style.background = `linear-gradient(135deg, #94a3b8, #475569)`;
             profileShortcutIcon.style.boxShadow = `0 10px 20px rgba(0,0,0,0.2)`;
         }
@@ -130,14 +78,13 @@ function updateUserAvatarUI(photoURL) {
     // 2. Aggiorna avatar nelle impostazioni (se presente)
     const profileAvatar = document.querySelector('.profile-avatar');
     if (profileAvatar) {
-        if (photoURL) {
-            const isImage = photoURL.endsWith('.png') || photoURL.endsWith('.jpg') || photoURL.endsWith('.svg');
-            profileAvatar.innerHTML = getIconHTML(photoURL, isImage ? "" : `color: ${color}`);
-            profileAvatar.style.borderColor = color;
-        } else {
-            profileAvatar.innerHTML = `<i class="fas fa-user"></i>`;
-            profileAvatar.style.borderColor = 'var(--primary-color)';
+        const img = profileAvatar.querySelector('#current-profile-img');
+        if (img) {
+            img.src = photoURL ? `${IMAGE_ICONS_PATH}${photoURL}` : `${IMAGE_ICONS_PATH}088-man.png`;
         }
+        profileAvatar.style.borderColor = color || 'var(--primary-color)';
+        // Aggiunge l'effetto glow dinamico (stile iOS/Glassmorphism)
+        profileAvatar.style.boxShadow = photoURL ? `0 0 30px ${color}88` : `0 0 20px rgba(56, 189, 248, 0.3)`;
     }
 }
  
@@ -406,7 +353,7 @@ function setupEventListeners() {
     // Menu Actions
     document.getElementById('logout-btn').onclick = () => logout();
 
-    document.getElementById('btn-select-icon').onclick = async () => {
+    const openIconSelector = async () => {
         toggleLoading(true);
         const users = await getAllUsers();
         toggleLoading(false);
@@ -474,6 +421,13 @@ function setupEventListeners() {
         });
         window.lastSelectedIcon = selectedIcon;
     };
+
+    document.getElementById('btn-select-icon').onclick = openIconSelector;
+    
+    const profileAvatarClickable = document.getElementById('profile-avatar-clickable');
+    if (profileAvatarClickable) {
+        profileAvatarClickable.onclick = openIconSelector;
+    }
 
     document.getElementById('btn-change-password').onclick = () => {
         modalManager.openModal({
@@ -572,13 +526,13 @@ function updateLockInfo(lockDateTime, notes = "") {
     let html = '';
     if (lockDateTime) {
         const date = new Date(lockDateTime);
-        html += `<i class="fas fa-lock"></i> Pronostici bloccati: <strong>${date.toLocaleDateString()} alle ${date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong>`;
+        html += `<img src="assets/image/icon/087-shield.png" style="width: 14px; margin-right: 5px; vertical-align: middle;"> Pronostici bloccati: <strong>${date.toLocaleDateString()} alle ${date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</strong>`;
     } else {
-        html += `<i class="fas fa-unlock"></i> Nessun blocco impostato.`;
+        html += `<img src="assets/image/icon/045-play.png" style="width: 14px; margin-right: 5px; vertical-align: middle; transform: rotate(-90deg);"> Nessun blocco impostato.`;
     }
 
     if (notes) {
-        html += `<div style="margin-top: 5px; font-style: italic; color: var(--accent-color)"><i class="fas fa-info-circle"></i> ${notes}</div>`;
+        html += `<div style="margin-top: 5px; font-style: italic; color: var(--accent-color)"><img src="assets/image/icon/017-football-card.png" style="width: 14px; margin-right: 5px; vertical-align: middle;"> ${notes}</div>`;
     }
 
     info.innerHTML = html;
@@ -721,9 +675,8 @@ async function initUserManagement() {
         let avatarStyle = "";
         
         if (user.photoURL) {
-            const color = getIconColor(user.photoURL);
-            avatarContent = `<i class="fas ${user.photoURL}" style="color: ${color}"></i>`;
-            avatarStyle = `style="border: 1px solid ${color}44; background: rgba(0,0,0,0.2)"`;
+            avatarContent = `<img src="${IMAGE_ICONS_PATH}${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: contain;">`;
+            avatarStyle = `style="border: 1px solid var(--primary-color)44; background: rgba(0,0,0,0.2)"`;
         }
 
         const card = document.createElement('div');
@@ -736,8 +689,8 @@ async function initUserManagement() {
                 <span class="badge" style="background: ${user.role === 'admin' ? 'var(--primary-color)' : 'var(--secondary-color)'}; font-size: 0.6rem;">${user.role.toUpperCase()}</span>
             </div>
             <div class="user-manage-actions">
-                <button class="action-btn edit" title="Modifica"><i class="fas fa-user-pen"></i></button>
-                <button class="action-btn delete" title="Elimina"><i class="fas fa-user-xmark"></i></button>
+                <button class="action-btn edit" title="Modifica"><img src="assets/image/icon/099-creative-writing.png" style="width: 20px;"></button>
+                <button class="action-btn delete" title="Elimina"><img src="assets/image/icon/026-bomb.png" style="width: 20px;"></button>
             </div>
         `;
 
@@ -901,9 +854,8 @@ function initLeaderboardLive() {
             let avatarStyle = "";
             
             if (user.photoURL) {
-                const color = getIconColor(user.photoURL);
-                avatarContent = `<i class="fas ${user.photoURL}" style="color: ${color}"></i>`;
-                avatarStyle = `style="border: 1px solid ${color}44; background: rgba(0,0,0,0.2)"`;
+                avatarContent = `<img src="${IMAGE_ICONS_PATH}${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: contain;">`;
+                avatarStyle = `style="border: 1px solid var(--primary-color)44; background: rgba(0,0,0,0.2)"`;
             }
 
             const tr = document.createElement('tr');
@@ -991,7 +943,7 @@ function initResultsLive(giornata) {
                 div.innerHTML = `
                     ${isDisabled ? `
                         <div class="match-disabled-overlay">
-                            <i class="fas fa-link-slash"></i>
+                            <img src="assets/image/icon/026-bomb.png" style="width: 50px;">
                             <span>Partita Disabilitata</span>
                         </div>
                     ` : ''}
@@ -1079,13 +1031,13 @@ function initAdminMatchesLive() {
             div.innerHTML = `
                 ${isDisabled ? `
                     <div class="match-disabled-overlay">
-                        <i class="fas fa-link-slash"></i>
+                        <img src="assets/image/icon/026-bomb.png" style="width: 50px;">
                         <span>Partita Disabilitata</span>
                     </div>
                 ` : ''}
                 <div class="match-header-actions">
                     <button class="btn-match-menu" title="Opzioni Partita">
-                        <i class="fas fa-ellipsis-vertical"></i>
+                        <img src="assets/image/icon/045-play.png" style="width: 15px; transform: rotate(90deg);">
                     </button>
                 </div>
                 <div class="match-info">
@@ -1109,11 +1061,11 @@ function initAdminMatchesLive() {
                 </div>
                 <div class="match-footer">
                     <button class="btn-save-res btn-primary" ${!isLocked || isDisabled ? 'disabled' : ''}>
-                        <i class="fas fa-check"></i> ${isFinished ? 'Aggiorna' : 'Salva'}
+                        <img src="assets/image/icon/007-trophy.png" style="width: 18px; margin-right: 8px;"> ${isFinished ? 'Aggiorna' : 'Salva'}
                     </button>
                     ${isFinished && !isDisabled ? `
                         <button class="btn-reset-res" title="Resetta Risultato">
-                            <i class="fas fa-rotate-left"></i>
+                            <img src="assets/image/icon/068-spaceship.png" style="width: 20px; transform: scaleX(-1);">
                         </button>
                     ` : ''}
                 </div>

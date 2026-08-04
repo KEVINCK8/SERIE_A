@@ -109,7 +109,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
             if (index === 0 && notes) {
                 const notesDiv = document.createElement('div');
                 notesDiv.className = 'matchday-notice';
-                notesDiv.innerHTML = `<i class="fas fa-info-circle"></i> ${notes}`;
+                notesDiv.innerHTML = `<img src="assets/image/icon/017-football-card.png" style="width: 20px;"> ${notes}`;
                 header.appendChild(notesDiv);
             }
             
@@ -167,13 +167,13 @@ export const initPlayerMatchesLive = (giornata, userId) => {
                     card.innerHTML = `
                         ${isDisabled ? `
                             <div class="match-disabled-overlay">
-                                <i class="fas fa-link-slash"></i>
+                                <img src="assets/image/icon/026-bomb.png" style="width: 50px;">
                                 <span>Partita Disabilitata</span>
                             </div>
                         ` : ''}
                         <div class="match-info">
                             <span>${match.dateTime ? matchDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'}</span>
-                            <span class="badge ${statusClass}"><i class="fas fa-${isLocked ? 'lock' : (isDisabled ? 'ban' : 'edit')}"></i> ${isDisabled ? 'Disabilitata' : statusText}</span>
+                            <span class="badge ${statusClass}"><img src="assets/image/icon/${isLocked ? '087-shield.png' : (isDisabled ? '026-bomb.png' : '099-creative-writing.png')}" style="width: 14px; vertical-align: middle; margin-right: 5px;"> ${isDisabled ? 'Disabilitata' : statusText}</span>
                         </div>
                         <div class="match-teams">
                             <div class="team">
@@ -199,11 +199,11 @@ export const initPlayerMatchesLive = (giornata, userId) => {
                         ` : ''}
                     <div class="match-footer">
                         <button class="btn-save-pred btn-primary" data-match-id="${match.id}" ${isLocked || isDisabled ? 'disabled' : ''}>
-                            ${isDisabled ? '<i class="fas fa-ban"></i> Partita Disabilitata' : (isLocked ? '<i class="fas fa-lock"></i> Scommessa Chiusa' : (hasPrediction ? '<i class="fas fa-sync"></i> Aggiorna Pronostico' : '<i class="fas fa-check"></i> Conferma Pronostico'))}
+                            ${isDisabled ? '<img src="assets/image/icon/026-bomb.png" style="width: 18px; margin-right: 8px;"> Partita Disabilitata' : (isLocked ? '<img src="assets/image/icon/087-shield.png" style="width: 18px; margin-right: 8px;"> Scommessa Chiusa' : (hasPrediction ? '<img src="assets/image/icon/045-play.png" style="width: 18px; margin-right: 8px; transform: rotate(-90deg);"> Aggiorna Pronostico' : '<img src="assets/image/icon/007-trophy.png" style="width: 18px; margin-right: 8px;"> Conferma Pronostico'))}
                         </button>
                         ${(!isLocked && !isDisabled) ? `
                             <button class="btn-delete-pred" title="Elimina Pronostico" style="display: ${hasAnyValue || hasPrediction ? 'flex' : 'none'}">
-                                <i class="fas fa-trash-can"></i>
+                                <img src="assets/image/icon/026-bomb.png" style="width: 20px;">
                             </button>
                         ` : ''}
                     </div>
@@ -299,7 +299,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
             footerActions.className = 'view-footer-actions';
             footerActions.innerHTML = `
                 <button id="btn-confirm-all" class="btn-primary" style="width: 100%; height: 55px; font-size: 1.1rem;">
-                    <i class="fas fa-check-double"></i> Conferma Tutti i Pronostici
+                    <img src="assets/image/icon/007-trophy.png" style="width: 24px; margin-right: 10px;"> Conferma Tutti i Pronostici
                 </button>
             `;
             // Inseriamo in cima alla lista

@@ -171,11 +171,11 @@ export const renderMatchdayScroll = (currentGiornata, containerId, onSelect) => 
         
         const btnLeft = document.createElement('button');
         btnLeft.className = 'scroll-arrow left';
-        btnLeft.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        btnLeft.innerHTML = '<img src="assets/image/icon/045-play.png" style="width: 20px; transform: rotate(180deg); opacity: 0.7;">';
         
         const btnRight = document.createElement('button');
         btnRight.className = 'scroll-arrow right';
-        btnRight.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        btnRight.innerHTML = '<img src="assets/image/icon/045-play.png" style="width: 20px; opacity: 0.7;">';
         
         wrapper.appendChild(btnLeft);
         wrapper.appendChild(container);
