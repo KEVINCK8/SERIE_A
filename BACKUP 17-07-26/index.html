@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Serie A SBT - Super App</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <div id="app">
+        <!-- Navigation - Floating Bottom Pill -->
+        <nav id="main-nav" class="hidden">
+            <div class="mobile-nav">
+                <a href="#" data-view="dashboard" class="active"><i class="fas fa-house-chimney"></i><span>Home</span></a>
+                <a href="#" data-view="predictions" id="nav-predictions"><i class="fas fa-pen-to-square"></i><span>Pronostici</span></a>
+                <a href="#" data-view="results" id="nav-results"><i class="fas fa-chart-simple"></i><span>Risultati</span></a>
+                <a href="#" data-view="leaderboard" id="nav-leaderboard"><i class="fas fa-ranking-star"></i><span>Classifica</span></a>
+                <a href="#" data-view="admin" id="nav-admin" class="hidden"><i class="fas fa-shield-halved"></i><span>Admin</span></a>
+                <a href="#" data-view="settings"><i class="fas fa-user-gear"></i><span>Menu</span></a>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="content">
+            <!-- Loading Spinner -->
+            <div id="loading-overlay" class="overlay hidden">
+                <div class="spinner"></div>
+            </div>
+
+            <!-- Views Container -->
+            <section id="view-container">
+                <!-- Auth View -->
+                <div id="auth-view" class="view">
+                    <div class="auth-card glass-card">
+                        <div class="logo" style="text-align: center; margin-bottom: 25px; font-size: 2.2rem; font-weight: 900;">SERIE A <span style="color: var(--primary-color);">SBT</span></div>
+                        <div class="auth-tabs">
+                            <button class="tab-btn active" data-tab="login">Accedi</button>
+                            <button class="tab-btn" data-tab="register">Registrati</button>
+                        </div>
+                        
+                        <form id="login-form" class="auth-form">
+                            <div class="input-group">
+                                <label>Email</label>
+                                <input type="email" id="login-email" required placeholder="La tua email">
+                            </div>
+                            <div class="input-group">
+                                <label>Password</label>
+                                <input type="password" id="login-password" required placeholder="La tua password">
+                            </div>
+                            <button type="submit" class="btn-primary" style="margin-top: 10px;">Entra nell'App</button>
+                        </form>
+
+                        <form id="register-form" class="auth-form hidden">
+                            <div class="input-group">
+                                <label>Nome Utente</label>
+                                <input type="text" id="register-name" required placeholder="Come vuoi essere chiamato?">
+                            </div>
+                            <div class="input-group">
+                                <label>Email</label>
+                                <input type="email" id="register-email" required placeholder="La tua email">
+                            </div>
+                            <div class="input-group">
+                                <label>Password</label>
+                                <input type="password" id="register-password" required minlength="6" placeholder="Minimo 6 caratteri">
+                            </div>
+                            <button type="submit" class="btn-primary" style="margin-top: 10px;">Crea Account</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Dashboard View (Home) -->
+                <div id="dashboard-view" class="view hidden">
+                    <header class="view-header">
+                        <h1>Benvenuto, <span id="welcome-name">Utente</span></h1>
+                    </header>
+                    
+                    <div class="home-container">
+                        <!-- Giornata Status Card -->
+                        <div class="matchday-status-card glass-card" id="matchday-status-container">
+                            <div class="status-header">
+                                <span class="status-title">Giornata <span id="home-giornata-num">--</span></span>
+                                <div id="lock-countdown" class="countdown-timer hidden">
+                                    <span class="timer-label">Chiude in:</span>
+                                    <span id="timer-val">--:--:--</span>
+                                </div>
+                            </div>
+                            
+                            <div class="prediction-progress-box">
+                                <div class="progress-info">
+                                    <span id="prediction-status-text">Analisi pronostici...</span>
+                                    <span id="prediction-count">0/0</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div id="prediction-progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div id="matchday-notes-home" class="matchday-notes hidden"></div>
+                        </div>
+
+                        <!-- iOS Shortcut Grid -->
+                        <div class="shortcut-grid">
+                            <div class="shortcut-item glass-card" onclick="navigateTo('predictions')">
+                                <div class="shortcut-icon"><i class="fas fa-pen-nib"></i></div>
+                                <span class="shortcut-label">Pronostici</span>
+                            </div>
+                            <div class="shortcut-item glass-card" onclick="navigateTo('results')">
+                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #10b981, #3b82f6);"><i class="fas fa-calendar-check"></i></div>
+                                <span class="shortcut-label">Risultati</span>
+                            </div>
+                            <div class="shortcut-item glass-card" onclick="navigateTo('leaderboard')">
+                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #f59e0b, #ef4444);"><i class="fas fa-trophy"></i></div>
+                                <span class="shortcut-label">Classifica</span>
+                            </div>
+                            <div class="shortcut-item glass-card" onclick="navigateTo('settings')">
+                                <div class="shortcut-icon" style="background: linear-gradient(135deg, #94a3b8, #475569);"><i class="fas fa-user"></i></div>
+                                <span class="shortcut-label">Profilo</span>
+                            </div>
+                            <div class="shortcut-item glass-card hidden" onclick="navigateTo('admin')">
+                                <div class="shortcut-icon" style="background: var(--primary-gradient);"><i class="fas fa-shield-halved"></i></div>
+                                <span class="shortcut-label">Admin</span>
+                            </div>
+                        </div>
+
+                        <!-- Mini Stats Card -->
+                        <div class="glass-card" style="padding: 20px;">
+                            <h3 style="margin-bottom: 15px; font-size: 1rem;">Le tue Statistiche</h3>
+                            <div class="profile-stats">
+                                <div class="mini-stat">
+                                    <span class="mini-stat-val" id="home-user-points">0</span>
+                                    <span class="mini-stat-label">Punti</span>
+                                </div>
+                                <div class="mini-stat">
+                                    <span class="mini-stat-val" id="home-user-rank">#--</span>
+                                    <span class="mini-stat-label">Posizione</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Menu / Settings View -->
+                <div id="settings-view" class="view hidden">
+                    <header class="view-header">
+                        <h1>Il tuo Profilo</h1>
+                    </header>
+
+                    <div class="profile-header glass-card">
+                        <div class="profile-avatar-container">
+                            <div class="profile-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                        <div class="profile-stats">
+                            <div class="mini-stat">
+                                <span class="mini-stat-val" id="profile-total-points">0</span>
+                                <span class="mini-stat-label">Punti Totali</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-stat-val" id="profile-exact-scores">0</span>
+                                <span class="mini-stat-label">Risultati Esatti</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="menu-sections">
+                        <div class="menu-item glass-card" id="btn-change-password">
+                            <i class="fas fa-key"></i>
+                            <div class="menu-item-text">
+                                <h4>Cambia Password</h4>
+                                <p>Aggiorna le tue credenziali di accesso</p>
+                            </div>
+                            <i class="fas fa-chevron-right" style="font-size: 0.8rem; background: none; color: var(--text-muted);"></i>
+                        </div>
+
+                        <div class="menu-item glass-card" id="btn-personal-info">
+                            <i class="fas fa-id-card"></i>
+                            <div class="menu-item-text">
+                                <h4>Informazioni Personali</h4>
+                                <p id="profile-email-display">email@example.com</p>
+                            </div>
+                            <i class="fas fa-chevron-right" style="font-size: 0.8rem; background: none; color: var(--text-muted);"></i>
+                        </div>
+
+                        <div class="menu-item glass-card hidden" id="btn-manage-users">
+                            <i class="fas fa-users-gear"></i>
+                            <div class="menu-item-text">
+                                <h4>Gestione Utenti</h4>
+                                <p>Modifica ruoli o rimuovi partecipanti</p>
+                            </div>
+                            <i class="fas fa-chevron-right" style="font-size: 0.8rem; background: none; color: var(--text-muted);"></i>
+                        </div>
+
+                        <div class="menu-item glass-card danger" id="btn-delete-account">
+                            <i class="fas fa-user-slash"></i>
+                            <div class="menu-item-text">
+                                <h4>Elimina Account</h4>
+                                <p>Rimuovi definitivamente i tuoi dati</p>
+                            </div>
+                        </div>
+
+                        <div class="menu-item glass-card" id="logout-btn" style="margin-top: 10px;">
+                            <i class="fas fa-sign-out-alt" style="color: var(--text-muted);"></i>
+                            <div class="menu-item-text">
+                                <h4>Logout</h4>
+                                <p>Esci dalla sessione corrente</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder views for other sections (maintained for logic) -->
+                <div id="predictions-view" class="view hidden">
+                    <header class="view-header"><h1>Pronostici</h1></header>
+                    <div id="predictions-giornata-scroll" class="matchday-scroll-container"></div>
+                    <div id="matches-list" class="matches-grid"></div>
+                </div>
+                <div id="results-view" class="view hidden">
+                    <header class="view-header"><h1>Risultati</h1></header>
+                    <div id="results-giornata-scroll" class="matchday-scroll-container"></div>
+                    <div id="results-list" class="matches-grid"></div>
+                </div>
+                <div id="leaderboard-view" class="view hidden">
+                    <header class="view-header">
+                        <h1>Classifica Generale</h1>
+                    </header>
+                    <div class="leaderboard-table-container">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Utente</th>
+                                    <th style="text-align: center;">Punti</th>
+                                    <th style="text-align: center;">Esatti</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <!-- Leaderboard data injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Admin View -->
+                <div id="admin-view" class="view hidden">
+                    <header class="view-header">
+                        <h1>Pannello Admin</h1>
+                        <div class="admin-top-actions">
+                            <button id="import-calendar-btn" class="btn-secondary btn-sm"><i class="fas fa-file-import"></i> Importa</button>
+                            <button id="add-match-btn" class="btn-primary btn-sm"><i class="fas fa-plus"></i> Nuova Partita</button>
+                        </div>
+                    </header>
+
+                    <!-- Matchday Selection -->
+                    <div class="admin-section">
+                        <h3 class="section-title">Seleziona Giornata</h3>
+                        <div id="admin-giornata-scroll" class="matchday-scroll-container">
+                            <!-- Horizontal scrollable giornate -->
+                        </div>
+                    </div>
+
+                    <!-- Matchday Management (Lock/Notes) -->
+                    <div class="admin-section glass-card" style="padding: 20px; margin-bottom: 25px;">
+                        <h3 class="section-title"><i class="fas fa-lock-open"></i> Gestione Blocco</h3>
+                        <form id="matchday-lock-form" class="lock-form-grid">
+                            <div class="input-group">
+                                <label>Scadenza Pronostici</label>
+                                <input type="datetime-local" id="lock-datetime">
+                            </div>
+                            <div class="input-group">
+                                <label>Note Giornata</label>
+                                <input type="text" id="matchday-notes" placeholder="Esempio: Giornata bonus...">
+                            </div>
+                            <div class="lock-actions">
+                                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salva</button>
+                                <button type="button" id="remove-lock-btn" class="btn-danger"><i class="fas fa-trash"></i> Rimuovi</button>
+                            </div>
+                        </form>
+                        <div id="current-lock-info" class="lock-info-badge"></div>
+                    </div>
+
+                    <!-- Matches Management -->
+                    <div class="admin-section">
+                        <h3 class="section-title"><i class="fas fa-futbol"></i> Risultati Partite</h3>
+                        <div id="admin-matches-list" class="admin-matches matches-grid">
+                            <!-- Admin matches will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Add Match Modal -->
+                    <div id="match-modal" class="modal-overlay">
+                        <div class="modal-glass-content">
+                            <div class="modal-header">
+                                <h2>Nuova Partita</h2>
+                                <button class="close-modal-btn">&times;</button>
+                            </div>
+                            <form id="match-form">
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Giornata</label>
+                                        <input type="number" id="match-giornata" min="1" max="38" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Data e Ora</label>
+                                        <input type="datetime-local" id="match-date" required>
+                                    </div>
+                                </div>
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label>Squadra Casa</label>
+                                        <input type="text" id="match-home" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Squadra Trasferta</label>
+                                        <input type="text" id="match-away" required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn-primary">Aggiungi Partita</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div id="user-profile-view" class="view hidden">
+                    <header class="view-header">
+                        <button class="btn-back" id="profile-back-btn"><i class="fas fa-arrow-left"></i></button>
+                        <h1 id="profile-username">Dettaglio Utente</h1>
+                    </header>
+                    <div id="profile-predictions-list" class="matches-grid"></div>
+                </div>
+
+                <!-- User Management View (Admin Only) -->
+                <div id="user-management-view" class="view hidden">
+                    <header class="view-header">
+                        <button class="btn-back" onclick="navigateTo('settings')"><i class="fas fa-arrow-left"></i></button>
+                        <h1>Gestione Utenti</h1>
+                    </header>
+                    <div class="search-container glass-card" style="margin-bottom: 20px; padding: 10px 15px;">
+                        <div class="input-group" style="margin: 0;">
+                            <input type="text" id="user-search-input" placeholder="Cerca utente per nome o email...">
+                        </div>
+                    </div>
+                    <div id="user-management-list" class="user-list-grid">
+                        <!-- User items injected here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Dynamic Modal Container -->
+        <div id="modal-manager-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="assets/js/app.js"></script>
+    <script>
+        // Global navigation helper for shortcuts
+        window.navigateTo = (viewId) => {
+            const event = new CustomEvent('navigate', { detail: viewId });
+            window.dispatchEvent(event);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Funzioni di utilità per semplificare le regole
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Regole per la collezione Matches (Partite)
+    // - Tutti gli utenti loggati possono leggere le partite.
+    // - Solo l'admin può creare, modificare o eliminare partite.
+    match /matches/{matchId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Regole per la collezione Matchdays (Configurazione Giornate)
+    // - Tutti gli utenti loggati possono leggere la configurazione (lock, status, etc.).
+    // - Solo l'admin può modificare le scadenze o lo stato della giornata.
+    match /matchdays/{giornata} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Regole per la collezione Users (Profili e Statistiche)
+    // - Tutti gli utenti loggati possono leggere i profili (necessario per la classifica).
+    // - Un utente può creare il proprio profilo durante la registrazione.
+    // - Un utente può aggiornare i propri dati (tranne il ruolo).
+    // - L'admin può modificare tutto (inclusi i punti).
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin() || isOwner(userId);
+    }
+
+    // Regole per la collezione Predictions (Pronostici)
+    // - Tutti gli utenti loggati possono leggere i pronostici (per trasparenza tra amici).
+    // - Un utente può creare/modificare solo i propri pronostici.
+    // - L'admin può gestire tutto per correzioni manuali.
+    match /predictions/{predictionId} {
+      allow read: if isSignedIn();
+      
+      // Permetti creazione e modifica solo se sei il proprietario
+      allow create: if isSignedIn() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      allow update, delete: if isAdmin() || (
+        isSignedIn() && 
+        resource.data.userId == request.auth.uid
+      );
+    }
+  }
+}

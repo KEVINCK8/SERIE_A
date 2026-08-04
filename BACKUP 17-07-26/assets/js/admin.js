@@ -1,0 +1,201 @@
+import { 
+    collection, 
+    addDoc, 
+    updateDoc, 
+    doc, 
+    getDocs, 
+    query, 
+    where,
+    getDoc,
+    setDoc,
+    writeBatch
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+import { toggleLoading, showNotification } from "./ui.js";
+import { clearCache } from "./db-service.js";
+import { calendarData } from "./calendar-data.js";
+
+export const importCalendar = async () => {
+    toggleLoading(true);
+    try {
+        const matchesRef = collection(db, "matches");
+        const existingMatches = await getDocs(matchesRef);
+        
+        if (!existingMatches.empty) {
+            if (!confirm("Ci sono già delle partite nel database. Vuoi aggiungerne altre? (Potrebbero esserci duplicati)")) {
+                toggleLoading(false);
+                return;
+            }
+        }
+
+        let count = 0;
+        for (const round of calendarData) {
+            const batch = writeBatch(db);
+            round.matches.forEach(m => {
+                const newMatchRef = doc(matchesRef);
+                batch.set(newMatchRef, {
+                    giornata: round.giornata,
+                    dateTime: round.date,
+                    homeTeam: m[0],
+                    awayTeam: m[1],
+                    homeScoreReal: null,
+                    awayScoreReal: null,
+                    status: "scheduled",
+                    createdAt: new Date().toISOString()
+                });
+                count++;
+            });
+            await batch.commit();
+        }
+
+        clearCache();
+        showNotification(`Calendario importato con successo! ${count} partite caricate.`);
+    } catch (error) {
+        console.error("Error importing calendar:", error);
+        showNotification("Errore durante l'importazione del calendario.", "error");
+    } finally {
+        toggleLoading(false);
+    }
+};
+
+export const addMatch = async (matchData) => {
+    try {
+        await addDoc(collection(db, "matches"), {
+            ...matchData,
+            homeScoreReal: null,
+            awayScoreReal: null,
+            status: "scheduled",
+            createdAt: new Date().toISOString()
+        });
+        clearCache();
+        return true;
+    } catch (error) {
+        console.error("Error adding match:", error);
+        return false;
+    }
+};
+
+export const updateMatchResult = async (matchId, homeScore, awayScore) => {
+    try {
+        const matchRef = doc(db, "matches", matchId);
+        await updateDoc(matchRef, {
+            homeScoreReal: parseInt(homeScore),
+            awayScoreReal: parseInt(awayScore),
+            status: "finished"
+        });
+        clearCache();
+        // Automatic points calculation
+        await calculatePoints(true); 
+        return true;
+    } catch (error) {
+        console.error("Error updating match result:", error);
+        return false;
+    }
+};
+
+export const resetMatchResult = async (matchId) => {
+    try {
+        const matchRef = doc(db, "matches", matchId);
+        await updateDoc(matchRef, {
+            homeScoreReal: null,
+            awayScoreReal: null,
+            status: "scheduled"
+        });
+        clearCache();
+        // Automatic points calculation
+        await calculatePoints(true);
+        return true;
+    } catch (error) {
+        console.error("Error resetting match result:", error);
+        return false;
+    }
+};
+
+export const calculatePoints = async (silent = false) => {
+    if (!silent) toggleLoading(true);
+    try {
+        // 1. Get all finished matches
+        const matchesSnapshot = await getDocs(query(collection(db, "matches"), where("status", "==", "finished")));
+        const matches = {};
+        matchesSnapshot.forEach(doc => {
+            matches[doc.id] = doc.data();
+        });
+
+        // 2. Get all predictions
+        const predictionsSnapshot = await getDocs(collection(db, "predictions"));
+        const userPoints = {}; // { userId: { points: 0, exact: 0 } }
+
+        // Use a batch for updating predictions
+        const batch = writeBatch(db);
+        let batchCount = 0;
+
+        predictionsSnapshot.forEach(predictionDoc => {
+            const pred = predictionDoc.data();
+            const match = matches[pred.matchId];
+
+            let points = 0;
+            let isExact = false;
+
+            if (match) {
+                const realHome = match.homeScoreReal;
+                const realAway = match.awayScoreReal;
+                const predHome = pred.homeScorePred;
+                const predAway = pred.awayScorePred;
+
+                // Exact Score (3 points)
+                if (realHome === predHome && realAway === predAway) {
+                    points = 3;
+                    isExact = true;
+                } 
+                // Correct Outcome (1 point)
+                else {
+                    const realOutcome = realHome > realAway ? 1 : (realHome < realAway ? 2 : 0);
+                    const predOutcome = predHome > predAway ? 1 : (predHome < predAway ? 2 : 0);
+                    
+                    if (realOutcome === predOutcome) {
+                        points = 1;
+                    }
+                }
+            }
+            // If match is not finished or not found, points = 0 (which is already set)
+
+            if (!userPoints[pred.userId]) {
+                userPoints[pred.userId] = { points: 0, exact: 0 };
+            }
+            userPoints[pred.userId].points += points;
+            if (isExact) userPoints[pred.userId].exact += 1;
+
+            // Update prediction document with points earned if it changed
+            if (pred.pointsEarned !== points) {
+                batch.update(predictionDoc.ref, { pointsEarned: points });
+                batchCount++;
+            }
+        });
+
+        if (batchCount > 0) await batch.commit();
+
+        // 3. Update all users' total points and exact results count (resetting those who might not have predictions anymore)
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        for (const userDoc of usersSnapshot.docs) {
+            const userId = userDoc.id;
+            const stats = userPoints[userId] || { points: 0, exact: 0 };
+            
+            // Only update if stats changed to save writes
+            const userData = userDoc.data();
+            if (userData.totalPoints !== stats.points || userData.exactResultsCount !== stats.exact) {
+                await updateDoc(userDoc.ref, {
+                    totalPoints: stats.points,
+                    exactResultsCount: stats.exact
+                });
+            }
+        }
+
+        clearCache();
+        if (!silent) showNotification("Punteggi calcolati con successo!");
+    } catch (error) {
+        console.error("Error calculating points:", error);
+        if (!silent) showNotification("Errore durante il calcolo dei punteggi.", "error");
+    } finally {
+        if (!silent) toggleLoading(false);
+    }
+};
