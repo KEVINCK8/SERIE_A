@@ -673,10 +673,12 @@ async function initUserManagement() {
         const initials = (user.displayName || 'U').substring(0, 2).toUpperCase();
         let avatarContent = initials;
         let avatarStyle = "";
+        let color = 'var(--primary-color)';
         
         if (user.photoURL) {
+            color = getIconColor(user.photoURL);
             avatarContent = `<img src="${IMAGE_ICONS_PATH}${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: contain;">`;
-            avatarStyle = `style="border: 1px solid var(--primary-color)44; background: rgba(0,0,0,0.2)"`;
+            avatarStyle = `style="border: 1px solid ${color}88; background: rgba(0,0,0,0.2); box-shadow: 0 0 10px ${color}44"`;
         }
 
         const card = document.createElement('div');
@@ -849,13 +851,15 @@ function initLeaderboardLive() {
             else if (rank === 2) rankClass = 'rank-2';
             else if (rank === 3) rankClass = 'rank-3';
 
-            // Determina il contenuto dell'avatar (Icona o Iniziali)
+            // Determina il contenuto dell'avatar (Icona immagine o Iniziali)
             let avatarContent = initials;
             let avatarStyle = "";
+            let color = 'var(--primary-color)';
             
             if (user.photoURL) {
+                color = getIconColor(user.photoURL);
                 avatarContent = `<img src="${IMAGE_ICONS_PATH}${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: contain;">`;
-                avatarStyle = `style="border: 1px solid var(--primary-color)44; background: rgba(0,0,0,0.2)"`;
+                avatarStyle = `style="border: 1px solid ${color}88; background: rgba(0,0,0,0.2); box-shadow: 0 0 10px ${color}44"`;
             }
 
             const tr = document.createElement('tr');

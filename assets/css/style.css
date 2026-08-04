@@ -1505,9 +1505,23 @@ main {
 
 @media (max-width: 480px) {
     .leaderboard-table th, .leaderboard-table td {
-        padding: 12px 8px; /* Ridotto leggermente per far spazio all'icona */
+        padding: 12px 6px;
     }
-    /* Rimosso display: none per l'avatar su mobile */
+    .user-cell {
+        gap: 8px;
+    }
+    .user-avatar-mini {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    .user-cell span {
+        font-size: 0.85rem;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 }
 
 /* --- USER MANAGEMENT VIEW --- */
