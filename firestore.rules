@@ -49,23 +49,30 @@ service cloud.firestore {
     }
 
     // Regole per la collezione Predictions (Pronostici)
-    // - Tutti gli utenti loggati possono leggere i pronostici (per trasparenza tra amici).
+    // - Ogni utente può leggere i propri pronostici.
+    // - L'admin può leggere e gestire tutto.
+    // - I pronostici degli altri utenti diventano leggibili solo dopo il blocco della giornata.
     // - Un utente può creare/modificare solo i propri pronostici PRIMA del blocco.
-    // - L'admin può gestire tutto per correzioni manuali.
     match /predictions/{predictionId} {
-      allow read: if isSignedIn();
-      
+      function matchdayData(matchId) {
+        let match = get(/databases/$(database)/documents/matches/$(matchId)).data;
+        return get(/databases/$(database)/documents/matchdays/$(string(match.giornata))).data;
+      }
+
       // Funzione per verificare se la giornata è ancora aperta
       function isGiornataOpen(matchId) {
-        let match = get(/databases/$(database)/documents/matches/$(matchId)).data;
-        let matchday = get(/databases/$(database)/documents/matchdays/$(string(match.giornata))).data;
-        // Se non c'è lockDateTime, la giornata è aperta. 
-        // Se c'è, confrontiamo con request.time (timestamp di Firestore)
-        // Nota: matchday.lockDateTime deve essere un Timestamp per il confronto diretto, 
-        // ma se è una stringa ISO, il confronto è più complesso in Rules.
-        // Assumiamo che l'admin imposti lockDateTime correttamente.
-        return matchday.lockDateTime == null || request.time < timestamp(matchday.lockDateTime);
+        let matchday = matchdayData(matchId);
+        // lockAtMillis viene salvato dal client insieme a lockDateTime.
+        return matchday.lockAtMillis == null || request.time.toMillis() < matchday.lockAtMillis;
       }
+
+      function isGiornataClosed(matchId) {
+        return !isGiornataOpen(matchId);
+      }
+
+      allow read: if isAdmin() ||
+                    (isSignedIn() && resource.data.userId == request.auth.uid) ||
+                    (isSignedIn() && isGiornataClosed(resource.data.matchId));
 
       allow create: if isSignedIn() && 
                       request.resource.data.userId == request.auth.uid &&

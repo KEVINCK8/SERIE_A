@@ -42,6 +42,7 @@ export const subscribeToMatchdayConfig = (giornata, callback) => {
     return onSnapshot(docRef, (docSnap) => {
         const data = docSnap.exists() ? docSnap.data() : {
             lockDateTime: null,
+            lockAtMillis: null,
             status: 'open',
             notes: ""
         };
@@ -208,6 +209,7 @@ export const getMatchdayConfig = async (giornata) => {
         const docSnap = await getDoc(docRef);
         const data = docSnap.exists() ? docSnap.data() : {
             lockDateTime: null,
+            lockAtMillis: null,
             status: 'open', // open, locked, finished
             isResultsVisible: true,
             notes: ""
@@ -230,6 +232,7 @@ export const getMatchdayLock = async (giornata) => {
 export const setMatchdayLock = async (giornata, lockDateTime) => {
     return updateMatchdayConfig(giornata, { 
         lockDateTime,
+        lockAtMillis: lockDateTime ? new Date(lockDateTime).getTime() : null,
         status: lockDateTime ? 'locked_scheduled' : 'open' 
     });
 };
@@ -237,6 +240,7 @@ export const setMatchdayLock = async (giornata, lockDateTime) => {
 export const removeMatchdayLock = async (giornata) => {
     return updateMatchdayConfig(giornata, { 
         lockDateTime: null,
+        lockAtMillis: null,
         status: 'open'
     });
 };
@@ -244,8 +248,14 @@ export const removeMatchdayLock = async (giornata) => {
 export const updateMatchdayConfig = async (giornata, configData) => {
     try {
         const docRef = doc(db, "matchdays", giornata.toString());
+        const normalizedConfig = { ...configData };
+        if (Object.prototype.hasOwnProperty.call(normalizedConfig, 'lockDateTime')) {
+            normalizedConfig.lockAtMillis = normalizedConfig.lockDateTime
+                ? new Date(normalizedConfig.lockDateTime).getTime()
+                : null;
+        }
         await setDoc(docRef, {
-            ...configData,
+            ...normalizedConfig,
             updatedAt: new Date().toISOString()
         }, { merge: true });
         clearCache(`config_${giornata}`);

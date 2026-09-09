@@ -158,9 +158,12 @@ export const renderGiornataSelect = (currentGiornata = 1, selectId = 'giornata-s
     }
 };
 
-export const renderMatchdayScroll = (currentGiornata, containerId, onSelect) => {
+export const renderMatchdayScroll = (currentGiornata, containerId, onSelect, options = {}) => {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    const isDisabled = typeof options.isDisabled === 'function' ? options.isDisabled : () => false;
+    const onDisabledSelect = typeof options.onDisabledSelect === 'function' ? options.onDisabledSelect : null;
 
     // Se non è già presente, aggiungiamo il wrapper e le frecce
     let wrapper = container.parentElement;
@@ -192,13 +195,21 @@ export const renderMatchdayScroll = (currentGiornata, containerId, onSelect) => 
 
     container.innerHTML = '';
     for (let i = 1; i <= 38; i++) {
+        const disabled = isDisabled(i);
         const item = document.createElement('div');
-        item.className = `matchday-item glass-card ${i === currentGiornata ? 'active' : ''}`;
+        item.className = `matchday-item glass-card ${i === currentGiornata ? 'active' : ''} ${disabled ? 'disabled' : ''}`;
+        item.setAttribute('role', 'button');
+        item.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        if (disabled) item.title = options.disabledTitle || 'Disponibile dopo il blocco della giornata';
         item.innerHTML = `
             <span class="md-label">GIORNATA</span>
             <span class="md-number">${i}</span>
         `;
         item.onclick = () => {
+            if (disabled) {
+                if (onDisabledSelect) onDisabledSelect(i);
+                return;
+            }
             container.querySelectorAll('.matchday-item').forEach(el => el.classList.remove('active'));
             item.classList.add('active');
             item.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
@@ -233,20 +244,20 @@ const TEAM_LOGOS = {
     "TORINO": "16-Torino-FC-v2005.png",
     "UDINESE": "17-Udinese-Calcio-v2010.png",
     "SASSUOLO": "18-US-Sassuolo-Calcio-v2010.png",
-    "PISA": "19-Pisa-SC-v2017.png",
-    "CREMONESE": "20-US-Cremonese-v1997.png",
     "VENEZIA": "20-Venezia.png",
     "MONZA": "19-Monza-SC-v2017.png",
     "FROSINONE": "250px-Frosinonestemma.png"
 };
 
+const FALLBACK_TEAM_LOGO = "assets/image/icon/023-football.png";
+
 export const getTeamLogo = (teamName) => {
-    if (!teamName) return `https://coreva-normal.trae.ai/api/ide/v1/text_to_image?prompt=football+logo&image_size=square`;
+    if (!teamName) return FALLBACK_TEAM_LOGO;
     
     const name = teamName.toUpperCase().trim();
     const logoFile = TEAM_LOGOS[name];
     if (logoFile) {
         return `assets/image/loghi/${logoFile}`;
     }
-    return `https://coreva-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(teamName + ' football logo')}&image_size=square`;
+    return FALLBACK_TEAM_LOGO;
 };

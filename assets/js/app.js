@@ -13,6 +13,7 @@ let currentView = 'auth';
 let currentGiornata = 1;
 let activeListeners = [];
 let userDocUnsubscribe = null;
+let hasSelectedInitialGiornata = false;
 
 // Percorso base per le icone immagine
 const IMAGE_ICONS_PATH = 'assets/image/icon/';
@@ -46,6 +47,25 @@ const AVAILABLE_ICONS = IMAGE_ICONS.map(img => ({ id: img, isImage: true, color:
 
 function getIconColor(iconId) {
     return '#38bdf8'; // Colore predefinito per tutte le icone asset
+}
+
+function isAdminUser() {
+    return currentUser?.role === 'admin';
+}
+
+function isMatchdayClosed(config) {
+    if (!config?.lockDateTime) return false;
+    const lockDate = new Date(config.lockDateTime);
+    return !Number.isNaN(lockDate.getTime()) && Date.now() >= lockDate.getTime();
+}
+
+function renderResultsLockedMessage(container, giornata) {
+    container.innerHTML = `
+        <div class="no-data results-locked-message glass-card">
+            <img src="assets/image/icon/087-shield.png" alt="" style="width: 42px; height: 42px;">
+            <p>I risultati della Giornata ${giornata} saranno visibili solo dopo il blocco della giornata.</p>
+        </div>
+    `;
 }
 
 /**
@@ -121,7 +141,6 @@ function updateUserAvatarUI(photoURL) {
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
-    await autoSelectGiornata(); // Find the best giornata to start with
     initAuthListener();
     setupEventListeners();
     
@@ -133,21 +152,60 @@ function cleanupListeners() {
         if (typeof unsubscribe === 'function') unsubscribe();
     });
     activeListeners = [];
+    cleanupPlayerListeners();
+}
+
+function cleanupAuthListener() {
     if (userDocUnsubscribe) {
         userDocUnsubscribe();
         userDocUnsubscribe = null;
     }
-    cleanupPlayerListeners();
 }
 
 function initAuthListener() {
     onAuthChange(async (user) => {
         try {
             if (user) {
+                cleanupAuthListener();
+
+                let userData = null;
+                try {
+                    userData = await getUserData(user.uid);
+                    if (!userData) {
+                        // Durante la registrazione Firebase Auth può notificare prima che il profilo Firestore sia creato.
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        userData = await getUserData(user.uid);
+                    }
+                } catch (error) {
+                    console.error("Errore nel caricamento iniziale del profilo:", error);
+                }
+
+                currentUser = {
+                    ...user,
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: userData?.displayName || user.displayName || user.email?.split('@')[0] || 'Utente',
+                    role: userData?.role || 'player',
+                    totalPoints: userData?.totalPoints || 0,
+                    exactResultsCount: userData?.exactResultsCount || 0,
+                    photoURL: userData?.photoURL || user.photoURL || ''
+                };
+                initAuthUI();
+                navigateTo('dashboard');
+                updateUserSettingsUI();
+
+                if (!hasSelectedInitialGiornata) {
+                    hasSelectedInitialGiornata = true;
+                    autoSelectGiornata().then(() => {
+                        if (currentView === 'dashboard' && currentUser?.uid === user.uid) {
+                            cleanupListeners();
+                            initDashboardLive();
+                        }
+                    });
+                }
+
                 // Monitoraggio real-time del documento utente per rilevare eliminazioni o cambi ruolo
-                if (userDocUnsubscribe) userDocUnsubscribe();
-                
-                userDocUnsubscribe = onSnapshot(doc(db, "users", user.uid), async (snapshot) => {
+                userDocUnsubscribe = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
                     if (!snapshot.exists()) {
                         // Se l'utente era già loggato (avevamo i suoi dati) e il doc sparisce, allora è stato eliminato
                         if (currentUser && currentUser.uid === user.uid) {
@@ -178,12 +236,14 @@ function initAuthListener() {
                     updateUserSettingsUI();
                 }, (error) => {
                     console.error("Errore nel monitoraggio utente:", error);
-                    logout();
+                    showNotification("Aggiornamento live profilo non disponibile. Sessione mantenuta.", "warning");
                 });
 
             } else {
                 currentUser = null;
+                hasSelectedInitialGiornata = false;
                 cleanupListeners();
+                cleanupAuthListener();
                 document.getElementById('main-nav').classList.add('hidden');
                 navigateTo('auth');
             }
@@ -351,7 +411,18 @@ function setupEventListeners() {
     }
 
     // Menu Actions
-    document.getElementById('logout-btn').onclick = () => logout();
+    document.getElementById('logout-btn').onclick = () => {
+        modalManager.confirm(
+            "Conferma Logout",
+            "Vuoi uscire dalla sessione corrente?",
+            async () => {
+                toggleLoading(true);
+                const { error } = await logout();
+                toggleLoading(false);
+                if (error) showNotification(error, "error");
+            }
+        );
+    };
 
     const openIconSelector = async () => {
         toggleLoading(true);
@@ -542,68 +613,149 @@ function updateLockInfo(lockDateTime, notes = "") {
 async function showUserProfile(user) {
     navigateTo('user-profile');
     document.getElementById('profile-username').textContent = `Pronostici di ${user.displayName || user.email}`;
-    
+
     const container = document.getElementById('profile-predictions-list');
     container.innerHTML = '<div class="spinner"></div>';
 
-    // Usiamo la giornata corrente per mostrare i pronostici dell'utente
-    activeListeners.push(subscribeToMatches(currentGiornata, (matches) => {
-        const matchIds = matches.map(m => m.id);
-        
-        activeListeners.push(subscribeToPredictions(user.uid, matchIds, (preds) => {
-            container.innerHTML = '';
-            if (matches.length === 0) {
-                container.innerHTML = '<p class="no-data">Nessuna partita trovata.</p>';
-                return;
+    const configsByGiornata = {};
+    await Promise.all(Array.from({ length: 38 }, async (_, index) => {
+        const giornata = index + 1;
+        configsByGiornata[giornata] = await getMatchdayConfig(giornata);
+    }));
+
+    const canViewProfileGiornata = (giornata) => isAdminUser() || isMatchdayClosed(configsByGiornata[giornata]);
+    const latestClosedGiornata = [...Array(38).keys()]
+        .map(i => i + 1)
+        .filter(giornata => isMatchdayClosed(configsByGiornata[giornata]))
+        .pop();
+
+    let selectedProfileGiornata = canViewProfileGiornata(currentGiornata)
+        ? currentGiornata
+        : (latestClosedGiornata || currentGiornata);
+
+    let currentConfig = null;
+    let currentMatches = null;
+    let currentPredictions = null;
+    let profileMatchesUnsubscribe = null;
+    let profilePredictionsUnsubscribe = null;
+    let profileConfigUnsubscribe = null;
+
+    const renderProfilePredictions = () => {
+        if (!currentConfig || currentMatches === null || currentPredictions === null) return;
+
+        if (!isAdminUser() && !isMatchdayClosed(currentConfig)) {
+            renderResultsLockedMessage(container, selectedProfileGiornata);
+            return;
+        }
+
+        container.innerHTML = '';
+        if (currentMatches.length === 0) {
+            container.innerHTML = '<p class="no-data">Nessuna partita trovata.</p>';
+            return;
+        }
+
+        currentMatches.forEach(match => {
+            const pred = currentPredictions[match.id];
+            const hasPrediction = pred !== undefined;
+            const isFinished = match.status === 'finished';
+            const isDisabled = match.disabled === true;
+
+            if (isDisabled) return; // Non mostrare partite disabilitate
+
+            let predictionClass = '';
+            if (isFinished && hasPrediction) {
+                if (pred.pointsEarned === 3) predictionClass = 'prediction-exact';
+                else if (pred.pointsEarned === 1) predictionClass = 'prediction-outcome';
+                else if (pred.pointsEarned === 0) predictionClass = 'prediction-wrong';
             }
 
-            matches.forEach(match => {
-                const pred = preds[match.id];
-                const hasPrediction = pred !== undefined;
-                const isFinished = match.status === 'finished';
-                const isDisabled = match.disabled === true;
-
-                if (isDisabled) return; // Non mostrare partite disabilitate
-
-                let predictionClass = '';
-                if (isFinished && hasPrediction) {
-                    if (pred.pointsEarned === 3) predictionClass = 'prediction-exact';
-                    else if (pred.pointsEarned === 1) predictionClass = 'prediction-outcome';
-                    else if (pred.pointsEarned === 0) predictionClass = 'prediction-wrong';
-                }
-
-                const card = document.createElement('div');
-                card.className = `match-card glass-card ${predictionClass}`;
-                card.innerHTML = `
-                    <div class="match-info">
-                        <span>${new Date(match.dateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        ${isFinished ? '<span class="badge" style="background:var(--success-color)">Terminata</span>' : '<span class="badge" style="background:var(--secondary-color)">In attesa</span>'}
+            const card = document.createElement('div');
+            card.className = `match-card glass-card ${predictionClass}`;
+            card.innerHTML = `
+                <div class="match-info">
+                    <span>${new Date(match.dateTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    ${isFinished ? '<span class="badge" style="background:var(--success-color)">Terminata</span>' : '<span class="badge" style="background:var(--secondary-color)">In attesa</span>'}
+                </div>
+                <div class="match-teams">
+                    <div class="team">
+                        <img src="${getTeamLogo(match.homeTeam)}" class="team-logo">
+                        <span class="team-name" style="font-size: 0.8rem;">${match.homeTeam}</span>
                     </div>
-                    <div class="match-teams">
-                        <div class="team">
-                            <img src="${getTeamLogo(match.homeTeam)}" class="team-logo">
-                            <span class="team-name" style="font-size: 0.8rem;">${match.homeTeam}</span>
-                        </div>
-                        <div class="score-display">
-                            <span class="score-input" style="width: 35px; height: 35px; font-size: 1rem;">${isFinished ? match.homeScoreReal : '-'}</span>
-                            <span class="vs">-</span>
-                            <span class="score-input" style="width: 35px; height: 35px; font-size: 1rem;">${isFinished ? match.awayScoreReal : '-'}</span>
-                        </div>
-                        <div class="team">
-                            <img src="${getTeamLogo(match.awayTeam)}" class="team-logo">
-                            <span class="team-name" style="font-size: 0.8rem;">${match.awayTeam}</span>
-                        </div>
+                    <div class="score-display">
+                        <span class="score-input" style="width: 35px; height: 35px; font-size: 1rem;">${isFinished ? match.homeScoreReal : '-'}</span>
+                        <span class="vs">-</span>
+                        <span class="score-input" style="width: 35px; height: 35px; font-size: 1rem;">${isFinished ? match.awayScoreReal : '-'}</span>
                     </div>
-                    <div class="real-result glass-card">
-                        <div style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Pronostico</div>
-                        <div style="font-weight: 900; font-size: 1.2rem; margin-bottom: 8px;">${hasPrediction ? `${pred.homeScorePred} - ${pred.awayScorePred}` : 'N.P.'}</div>
-                        ${isFinished && hasPrediction ? `<div class="points-badge">+${pred.pointsEarned || 0} PUNTI</div>` : ''}
+                    <div class="team">
+                        <img src="${getTeamLogo(match.awayTeam)}" class="team-logo">
+                        <span class="team-name" style="font-size: 0.8rem;">${match.awayTeam}</span>
                     </div>
-                `;
-                container.appendChild(card);
+                </div>
+                <div class="real-result glass-card">
+                    <div style="font-size: 0.6rem; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Pronostico</div>
+                    <div style="font-weight: 900; font-size: 1.2rem; margin-bottom: 8px;">${hasPrediction ? `${pred.homeScorePred} - ${pred.awayScorePred}` : 'N.P.'}</div>
+                    ${isFinished && hasPrediction ? `<div class="points-badge">+${pred.pointsEarned || 0} PUNTI</div>` : ''}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    };
+
+    const cleanupProfileSubscriptions = () => {
+        if (profileMatchesUnsubscribe) profileMatchesUnsubscribe();
+        if (profilePredictionsUnsubscribe) profilePredictionsUnsubscribe();
+        if (profileConfigUnsubscribe) profileConfigUnsubscribe();
+        profileMatchesUnsubscribe = null;
+        profilePredictionsUnsubscribe = null;
+        profileConfigUnsubscribe = null;
+    };
+
+    const loadProfileGiornata = (giornata) => {
+        cleanupProfileSubscriptions();
+        selectedProfileGiornata = giornata;
+        currentConfig = configsByGiornata[giornata] || null;
+        currentMatches = null;
+        currentPredictions = null;
+        container.innerHTML = '<div class="spinner"></div>';
+
+        if (!canViewProfileGiornata(giornata)) {
+            renderResultsLockedMessage(container, giornata);
+            return;
+        }
+
+        profileConfigUnsubscribe = subscribeToMatchdayConfig(giornata, (config) => {
+            configsByGiornata[giornata] = config;
+            currentConfig = config;
+            renderProfilePredictions();
+        });
+
+        profileMatchesUnsubscribe = subscribeToMatches(giornata, (matches) => {
+            currentMatches = matches;
+            const matchIds = matches.map(m => m.id);
+
+            if (profilePredictionsUnsubscribe) profilePredictionsUnsubscribe();
+            profilePredictionsUnsubscribe = subscribeToPredictions(user.uid, matchIds, (preds) => {
+                currentPredictions = preds;
+                renderProfilePredictions();
             });
-        }));
-    }));
+        });
+    };
+
+    activeListeners.push(cleanupProfileSubscriptions);
+
+    renderMatchdayScroll(selectedProfileGiornata, 'profile-giornata-scroll', (giornata) => {
+        selectedProfileGiornata = giornata;
+        loadProfileGiornata(giornata);
+    }, {
+        isDisabled: (giornata) => !canViewProfileGiornata(giornata),
+        onDisabledSelect: (giornata) => {
+            renderResultsLockedMessage(container, giornata);
+            showNotification(`La Giornata ${giornata} sarà disponibile solo dopo il blocco.`, "info");
+        },
+        disabledTitle: 'Disponibile solo dopo il blocco della giornata'
+    });
+
+    loadProfileGiornata(selectedProfileGiornata);
 }
 
 async function navigateTo(view) {
@@ -717,15 +869,29 @@ async function initUserManagement() {
                     { text: 'Salva Modifiche', type: 'primary', action: async (close) => {
                         const newName = document.getElementById('edit-user-name').value;
                         const newRole = document.getElementById('edit-user-role').value;
-                        toggleLoading(true);
-                        const { error } = await adminUpdateUser(user.uid, { displayName: newName, role: newRole });
-                        toggleLoading(false);
-                        if (error) showNotification(error, 'error');
-                        else {
-                            showNotification("Utente aggiornato con successo!", "success");
-                            close();
-                            initUserManagement(); // Refresh list
+
+                        const saveUserChanges = async () => {
+                            toggleLoading(true);
+                            const { error } = await adminUpdateUser(user.uid, { displayName: newName, role: newRole });
+                            toggleLoading(false);
+                            if (error) showNotification(error, 'error');
+                            else {
+                                showNotification("Utente aggiornato con successo!", "success");
+                                close();
+                                initUserManagement(); // Refresh list
+                            }
+                        };
+
+                        if (newRole !== user.role) {
+                            modalManager.confirm(
+                                "Conferma Cambio Ruolo",
+                                `Vuoi cambiare il ruolo di <strong>${user.displayName || user.email}</strong> da ${user.role} a ${newRole}?`,
+                                saveUserChanges
+                            );
+                            return;
                         }
+
+                        await saveUserChanges();
                     }}
                 ]
             });
@@ -895,9 +1061,15 @@ function initResultsLive(giornata) {
 
     let currentMatches = [];
     let currentPredictions = {};
+    let currentConfig = null;
     let predictionsUnsubscribe = null;
 
     const render = () => {
+        if (!isAdminUser() && !isMatchdayClosed(currentConfig)) {
+            renderResultsLockedMessage(container, giornata);
+            return;
+        }
+
         container.innerHTML = '';
         if (currentMatches.length === 0) {
             container.innerHTML = `<div class="no-data"><p>Nessun risultato per la Giornata ${giornata}.</p></div>`;
@@ -982,6 +1154,11 @@ function initResultsLive(giornata) {
             });
         }
     };
+
+    activeListeners.push(subscribeToMatchdayConfig(giornata, (config) => {
+        currentConfig = config;
+        render();
+    }));
 
     activeListeners.push(subscribeToMatches(giornata, (matches) => {
         currentMatches = matches;
@@ -1112,21 +1289,34 @@ function initAdminMatchesLive() {
                                 const newDate = document.getElementById('edit-match-date').value;
                                 const newDisabled = document.getElementById('edit-match-disabled').checked;
 
-                                toggleLoading(true);
-                                const success = await updateMatchDetails(match.id, {
-                                    homeTeam: newHome,
-                                    awayTeam: newAway,
-                                    dateTime: new Date(newDate).toISOString(),
-                                    disabled: newDisabled
-                                });
-                                toggleLoading(false);
+                                const saveMatchDetails = async () => {
+                                    toggleLoading(true);
+                                    const success = await updateMatchDetails(match.id, {
+                                        homeTeam: newHome,
+                                        awayTeam: newAway,
+                                        dateTime: new Date(newDate).toISOString(),
+                                        disabled: newDisabled
+                                    });
+                                    toggleLoading(false);
 
-                                if (success) {
-                                    showNotification("Partita aggiornata con successo!", "success");
-                                    close();
-                                } else {
-                                    showNotification("Errore durante l'aggiornamento.", "error");
+                                    if (success) {
+                                        showNotification("Partita aggiornata con successo!", "success");
+                                        close();
+                                    } else {
+                                        showNotification("Errore durante l'aggiornamento.", "error");
+                                    }
+                                };
+
+                                if (newDisabled !== isDisabled) {
+                                    modalManager.confirm(
+                                        newDisabled ? "Disabilita Partita" : "Riabilita Partita",
+                                        `${newDisabled ? "Disabilitare" : "Riabilitare"} questa partita modificherà la visibilità e ricalcolerà i punti. Vuoi continuare?`,
+                                        saveMatchDetails
+                                    );
+                                    return;
                                 }
+
+                                await saveMatchDetails();
                             }
                         }
                     ]
@@ -1138,10 +1328,17 @@ function initAdminMatchesLive() {
                 const h = div.querySelector('.res-home').value;
                 const a = div.querySelector('.res-away').value;
                 if (h === '' || a === '') return showNotification("Inserisci i risultati!", "error");
-                toggleLoading(true);
-                const success = await updateMatchResult(match.id, h, a);
-                toggleLoading(false);
-                if (success) showNotification("Risultato salvato e punti calcolati!", "success");
+
+                modalManager.confirm(
+                    isFinished ? "Aggiorna Risultato" : "Salva Risultato",
+                    `Confermi il risultato ${match.homeTeam} ${h} - ${a} ${match.awayTeam}? I punti degli utenti verranno ricalcolati.`,
+                    async () => {
+                        toggleLoading(true);
+                        const success = await updateMatchResult(match.id, h, a);
+                        toggleLoading(false);
+                        if (success) showNotification("Risultato salvato e punti calcolati!", "success");
+                    }
+                );
             };
 
             const resetBtn = div.querySelector('.btn-reset-res');

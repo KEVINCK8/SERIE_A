@@ -59,10 +59,10 @@ body {
 /* --- NAVIGATION --- */
 #main-nav {
     position: fixed;
-    bottom: 20px;
+    bottom: max(12px, env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
-    width: 90%;
+    width: min(500px, calc(100% - 24px));
     max-width: 500px;
     z-index: 1000;
 }
@@ -71,7 +71,8 @@ body {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 10px 15px;
+    gap: 2px;
+    padding: 8px;
     background: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -88,9 +89,10 @@ body {
     font-size: 0.65rem;
     gap: 4px;
     transition: var(--transition);
-    padding: 8px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 4px;
     border-radius: 18px;
-    min-width: 60px;
 }
 
 .mobile-nav a img.nav-icon {
@@ -117,8 +119,16 @@ body {
 /* --- MAIN CONTENT --- */
 main {
     max-width: 1200px;
-    margin: 20px auto 120px;
-    padding: 0 20px;
+    margin: 20px auto 0;
+    padding: 0 20px calc(var(--nav-height) + 64px + env(safe-area-inset-bottom));
+}
+
+main:has(#auth-view:not(.hidden)) {
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* --- LARGE COUNTDOWN CARD --- */
@@ -203,6 +213,13 @@ main {
     gap: 25px;
 }
 
+.menu-sections,
+.admin-section:last-child,
+.matches-grid,
+.user-list-grid {
+    padding-bottom: 12px;
+}
+
 /* Giornata Status Card */
 .matchday-status-card {
     background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
@@ -231,6 +248,8 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     z-index: 1;
 }
 
@@ -443,6 +462,17 @@ main {
 .matchday-item.active .md-number,
 .matchday-item.active .md-label {
     color: white;
+}
+
+.matchday-item.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    filter: grayscale(0.8);
+}
+
+.matchday-item.disabled:hover {
+    transform: none;
+    border-color: var(--glass-border);
 }
 
 .md-label {
@@ -680,9 +710,9 @@ main {
 
 .match-teams {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
 
 .team {
@@ -691,6 +721,7 @@ main {
     align-items: center;
     gap: 10px;
     text-align: center;
+    min-width: 0;
 }
 
 .team-logo {
@@ -711,6 +742,7 @@ main {
     font-size: 0.9rem;
     color: var(--text-main);
     max-width: 120px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -730,6 +762,9 @@ main {
 .score-input {
     width: 50px;
     height: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(255,255,255,0.05);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
@@ -740,7 +775,8 @@ main {
     outline: none;
     transition: var(--transition);
     padding: 0;
-    line-height: 50px;
+    line-height: 1;
+    vertical-align: middle;
 }
 
 .score-input::placeholder {
@@ -969,9 +1005,15 @@ main {
     color: var(--primary-color);
 }
 
-.menu-item-text { flex: 1; }
+.menu-item-text { flex: 1; min-width: 0; }
 .menu-item-text h4 { font-size: 0.95rem; margin-bottom: 2px; }
 .menu-item-text p { font-size: 0.75rem; color: var(--text-muted); }
+.menu-item-text h4,
+.menu-item-text p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 .menu-item.danger i { color: var(--danger-color); background: rgba(239, 68, 68, 0.1); }
 .menu-item.danger h4 { color: var(--danger-color); }
@@ -991,7 +1033,7 @@ main {
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 320px;
+    width: min(320px, calc(100vw - 32px));
     background: rgba(15, 23, 42, 0.9);
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
@@ -1038,12 +1080,14 @@ main {
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: flex-end; /* Mobile style: comes from bottom */
+    padding-top: 16px;
     z-index: 2100;
     opacity: 0;
     visibility: hidden;
@@ -1062,6 +1106,9 @@ main {
     border-top: 1px solid var(--glass-border);
     border-radius: 24px 24px 0 0;
     padding: 25px;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    padding-bottom: calc(25px + env(safe-area-inset-bottom));
     transform: translateY(100%);
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -1132,7 +1179,7 @@ main {
     display: flex;
     justify-content: center;
     width: 100%;
-    margin-bottom: 30px;
+    margin-bottom: 18px;
     z-index: 10;
     padding: 0 10px;
 }
@@ -1169,6 +1216,16 @@ main {
     padding: 12px;
     border-radius: var(--radius-md);
     border: 1px solid var(--glass-border);
+}
+
+.results-locked-message {
+    grid-column: 1 / -1;
+    padding: 28px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
 }
 
 /* --- BUTTONS --- */
@@ -1407,6 +1464,45 @@ main {
     }
 }
 
+@media (max-width: 420px) {
+    .status-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .countdown-timer {
+        align-items: flex-start;
+        width: 100%;
+    }
+}
+
+@media (max-width: 380px) {
+    .score-display,
+    .result-inputs,
+    .prediction-inputs {
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .score-input {
+        width: 42px;
+        height: 42px;
+        line-height: 1;
+        font-size: 1.2rem;
+    }
+
+    .team-logo {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (max-width: 360px) {
+    .mobile-nav a span {
+        display: none;
+    }
+}
+
 /* --- LEADERBOARD --- */
 .leaderboard-table-container {
     overflow-x: auto;
@@ -1546,6 +1642,7 @@ main {
 
 .user-manage-info {
     flex: 1;
+    min-width: 0;
 }
 
 .user-manage-info h4 {
@@ -1556,6 +1653,13 @@ main {
 .user-manage-info p {
     font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+.user-manage-info h4,
+.user-manage-info p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .user-manage-actions {
@@ -1622,7 +1726,10 @@ main {
         max-width: 600px;
     }
     
-    main { margin-top: 100px; }
+    main {
+        margin-top: 100px;
+        padding-bottom: 40px;
+    }
 }
 
 /* Auth view specific */
@@ -1630,7 +1737,8 @@ main {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    min-height: auto;
+    width: 100%;
 }
 
 .auth-card {

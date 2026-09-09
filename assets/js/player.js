@@ -85,6 +85,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
         const lockDateStr = currentConfig?.lockDateTime;
         const notes = currentConfig?.notes || "";
         const giornataLockDate = lockDateStr ? new Date(lockDateStr) : null;
+        const isMatchdayClosed = giornataLockDate && now >= giornataLockDate.getTime();
 
         const groupedMatches = {};
         currentMatches.forEach(match => {
@@ -139,6 +140,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
                     const hasPrediction = currentPredictions[match.id] !== undefined;
                     const isDisabled = match.disabled === true;
                     const isFinished = match.status === 'finished';
+                    const canShowResult = isFinished && isMatchdayClosed;
 
                     // Recupera dati dalla cache locale se non c'è ancora un pronostico salvato
                     const cacheKey = `pred_cache_${userId}_${match.id}`;
@@ -156,7 +158,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
 
                     // Determina la classe del pronostico basata sui punti guadagnati
                     let predictionClass = '';
-                    if (isFinished && hasPrediction && !isDisabled) {
+                    if (canShowResult && hasPrediction && !isDisabled) {
                         if (pred.pointsEarned === 3) predictionClass = 'prediction-exact';
                         else if (pred.pointsEarned === 1) predictionClass = 'prediction-outcome';
                         else if (pred.pointsEarned === 0) predictionClass = 'prediction-wrong';
@@ -190,7 +192,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
                                 <span class="team-name">${match.awayTeam || 'Sconosciuta'}</span>
                             </div>
                         </div>
-                        ${isFinished && !isDisabled ? `
+                        ${canShowResult && !isDisabled ? `
                             <div class="real-result glass-card">
                                 <div style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Risultato Finale</div>
                                 <div style="font-size: 1.5rem; font-weight: 900; margin-bottom: 12px; letter-spacing: 2px;">${match.homeScoreReal} - ${match.awayScoreReal}</div>
@@ -324,25 +326,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
                     return showNotification("Inserisci almeno un pronostico!", "warning");
                 }
 
-                if (hasEmpty) {
-                    modalManager.confirm(
-                        "Attenzione",
-                        "Alcuni pronostici sono vuoti. Vuoi confermare solo quelli compilati?",
-                        async () => {
-                            toggleLoading(true);
-                            let savedCount = 0;
-                            for (const p of predictionsToSave) {
-                                const success = await savePrediction(userId, p.matchId, p.home, p.away);
-                                if (success) {
-                                    savedCount++;
-                                    localStorage.removeItem(`pred_cache_${userId}_${p.matchId}`);
-                                }
-                            }
-                            toggleLoading(false);
-                            if (savedCount > 0) showNotification(`${savedCount} pronostici salvati!`, "success");
-                        }
-                    );
-                } else {
+                const saveCompiledPredictions = async () => {
                     toggleLoading(true);
                     let savedCount = 0;
                     for (const p of predictionsToSave) {
@@ -354,6 +338,20 @@ export const initPlayerMatchesLive = (giornata, userId) => {
                     }
                     toggleLoading(false);
                     if (savedCount > 0) showNotification(`${savedCount} pronostici salvati!`, "success");
+                };
+
+                if (hasEmpty) {
+                    modalManager.confirm(
+                        "Attenzione",
+                        "Alcuni pronostici sono vuoti. Vuoi confermare solo quelli compilati?",
+                        saveCompiledPredictions
+                    );
+                } else {
+                    modalManager.confirm(
+                        "Conferma Pronostici",
+                        `Vuoi salvare ${predictionsToSave.length} pronostici compilati?`,
+                        saveCompiledPredictions
+                    );
                 }
             };
         }

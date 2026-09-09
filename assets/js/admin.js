@@ -21,13 +21,6 @@ export const importCalendar = async () => {
         const matchesRef = collection(db, "matches");
         const existingMatches = await getDocs(matchesRef);
         
-        if (!existingMatches.empty) {
-            if (!confirm("Ci sono già delle partite nel database. Vuoi aggiungerne altre? (Potrebbero esserci duplicati)")) {
-                toggleLoading(false);
-                return;
-            }
-        }
-
         let count = 0;
         for (const round of calendarData) {
             const batch = writeBatch(db);
