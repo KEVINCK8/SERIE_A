@@ -224,6 +224,42 @@ export const getMatchdayConfig = async (giornata) => {
     }
 };
 
+export const getActiveLockedMatchday = async () => {
+    try {
+        const querySnapshot = await getDocs(collection(db, "matchdays"));
+        const now = Date.now();
+        const activeMatchdays = [];
+
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const lockTime = data.lockAtMillis || (data.lockDateTime ? new Date(data.lockDateTime).getTime() : null);
+            const giornata = parseInt(docSnap.id);
+
+            if (
+                Number.isInteger(giornata) &&
+                Number.isFinite(lockTime) &&
+                lockTime > now
+            ) {
+                activeMatchdays.push({
+                    giornata,
+                    lockTime,
+                    lockDateTime: data.lockDateTime || null
+                });
+            }
+        });
+
+        activeMatchdays.sort((a, b) => {
+            if (a.lockTime !== b.lockTime) return a.lockTime - b.lockTime;
+            return a.giornata - b.giornata;
+        });
+
+        return activeMatchdays[0] || null;
+    } catch (error) {
+        console.error("Error getting active locked matchday:", error);
+        return null;
+    }
+};
+
 export const getMatchdayLock = async (giornata) => {
     const config = await getMatchdayConfig(giornata);
     return config ? config.lockDateTime : null;

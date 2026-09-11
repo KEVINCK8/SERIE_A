@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "icons": "node scripts/generate-icon-manifest.mjs"
+  }
+}
