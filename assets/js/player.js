@@ -7,6 +7,48 @@ let activePredsUnsub = null;
 let activeConfigUnsub = null;
 let largeCountdownInterval = null;
 
+const PREDICTION_DRAFT_CACHE_VERSION = 1;
+
+const readPredictionDraft = (cacheKey, expiresAt) => {
+    try {
+        const raw = localStorage.getItem(cacheKey);
+        if (!raw) return { home: '', away: '' };
+
+        const draft = JSON.parse(raw);
+        const isCurrentVersion = draft.version === PREDICTION_DRAFT_CACHE_VERSION;
+        const isValid = isCurrentVersion
+            && Number.isFinite(draft.savedAt)
+            && typeof draft.home === 'string'
+            && typeof draft.away === 'string'
+            && Date.now() < expiresAt;
+
+        if (!isValid) {
+            localStorage.removeItem(cacheKey);
+            return { home: '', away: '' };
+        }
+
+        return { home: draft.home, away: draft.away };
+    } catch (error) {
+        console.warn("Unable to read prediction draft cache", error);
+        localStorage.removeItem(cacheKey);
+        return { home: '', away: '' };
+    }
+};
+
+const savePredictionDraft = (cacheKey, home, away) => {
+    try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+            version: PREDICTION_DRAFT_CACHE_VERSION,
+            savedAt: Date.now(),
+            home,
+            away
+        }));
+    } catch (error) {
+        // La cache è solo una bozza: l'app continua a funzionare anche se non disponibile.
+        console.warn("Unable to save prediction draft cache", error);
+    }
+};
+
 export const cleanupPlayerListeners = () => {
     if (activeMatchesUnsub) activeMatchesUnsub();
     if (activePredsUnsub) activePredsUnsub();
@@ -145,11 +187,11 @@ export const initPlayerMatchesLive = (giornata, userId) => {
                     // Recupera dati dalla cache locale se non c'è ancora un pronostico salvato
                     const cacheKey = `pred_cache_${userId}_${match.id}`;
                     let cachedData = { home: '', away: '' };
-                    if (!hasPrediction) {
-                        try {
-                            const raw = localStorage.getItem(cacheKey);
-                            if (raw) cachedData = JSON.parse(raw);
-                        } catch (e) { console.warn("Cache error", e); }
+                    if (hasPrediction || isLocked || isDisabled) {
+                        // Il dato salvato nel database è sempre la fonte autorevole.
+                        localStorage.removeItem(cacheKey);
+                    } else {
+                        cachedData = readPredictionDraft(cacheKey, limitDate);
                     }
 
                     const displayHome = pred.homeScorePred !== '' ? pred.homeScorePred : cachedData.home;
@@ -218,8 +260,7 @@ export const initPlayerMatchesLive = (giornata, userId) => {
 
                         // Salvataggio automatico in cache locale
                         const updateCache = () => {
-                            const data = { home: homeInput.value, away: awayInput.value };
-                            localStorage.setItem(cacheKey, JSON.stringify(data));
+                            savePredictionDraft(cacheKey, homeInput.value, awayInput.value);
                             
                             // Mostra/nascondi cestino in tempo reale
                             if (deleteBtn) {

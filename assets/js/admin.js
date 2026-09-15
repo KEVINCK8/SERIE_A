@@ -125,6 +125,36 @@ export const resetMatchResult = async (matchId) => {
     }
 };
 
+// I pronostici storici possono contenere punteggi salvati come stringhe (es. "3").
+// Per il calcolo, trattiamo sempre i valori numerici e non il loro tipo Firestore.
+export const calculatePredictionScore = (match, prediction) => {
+    if (!match || match.status !== 'finished' || match.disabled) {
+        return { points: 0, isExact: false };
+    }
+
+    const values = [
+        match.homeScoreReal,
+        match.awayScoreReal,
+        prediction.homeScorePred,
+        prediction.awayScorePred
+    ];
+
+    // Evita di assegnare punti a documenti incompleti o con valori non validi.
+    if (!values.every(value => value !== '' && value !== null && value !== undefined && Number.isInteger(Number(value)) && Number(value) >= 0)) {
+        return { points: 0, isExact: false };
+    }
+
+    const [realHome, realAway, predHome, predAway] = values.map(Number);
+
+    if (realHome === predHome && realAway === predAway) {
+        return { points: 3, isExact: true };
+    }
+
+    const realOutcome = Math.sign(realHome - realAway);
+    const predOutcome = Math.sign(predHome - predAway);
+    return { points: realOutcome === predOutcome ? 1 : 0, isExact: false };
+};
+
 export const calculatePoints = async (silent = false) => {
     if (!silent) toggleLoading(true);
     try {
@@ -139,40 +169,14 @@ export const calculatePoints = async (silent = false) => {
         const predictionsSnapshot = await getDocs(collection(db, "predictions"));
         const userPoints = {}; // { userId: { points: 0, exact: 0 } }
 
-        // Use a batch for updating predictions
-        const batch = writeBatch(db);
-        let batchCount = 0;
+        // Accumuliamo gli aggiornamenti e li inviamo in gruppi sotto il limite Firestore.
+        const predictionUpdates = [];
 
         predictionsSnapshot.forEach(predictionDoc => {
             const pred = predictionDoc.data();
             const match = matches[pred.matchId];
 
-            let points = 0;
-            let isExact = false;
-
-            // Calcola i punti solo se la partita esiste ed è terminata e NON è disabilitata
-            if (match && match.status === 'finished' && !match.disabled) {
-                const realHome = match.homeScoreReal;
-                const realAway = match.awayScoreReal;
-                const predHome = pred.homeScorePred;
-                const predAway = pred.awayScorePred;
-
-                // Exact Score (3 points)
-                if (realHome === predHome && realAway === predAway) {
-                    points = 3;
-                    isExact = true;
-                } 
-                // Correct Outcome (1 point)
-                else {
-                    const realOutcome = realHome > realAway ? 1 : (realHome < realAway ? 2 : 0);
-                    const predOutcome = predHome > predAway ? 1 : (predHome < predAway ? 2 : 0);
-                    
-                    if (realOutcome === predOutcome) {
-                        points = 1;
-                    }
-                }
-            }
-            // If match is not finished or not found, points = 0 (which is already set)
+            const { points, isExact } = calculatePredictionScore(match, pred);
 
             if (!userPoints[pred.userId]) {
                 userPoints[pred.userId] = { points: 0, exact: 0 };
@@ -182,12 +186,20 @@ export const calculatePoints = async (silent = false) => {
 
             // Update prediction document with points earned if it changed
             if (pred.pointsEarned !== points) {
-                batch.update(predictionDoc.ref, { pointsEarned: points });
-                batchCount++;
+                predictionUpdates.push({ ref: predictionDoc.ref, points });
             }
         });
 
-        if (batchCount > 0) await batch.commit();
+        // Un batch Firestore non può superare 500 operazioni. 450 lascia margine
+        // e permette il ricalcolo anche con molti utenti e pronostici.
+        const batchSize = 450;
+        for (let index = 0; index < predictionUpdates.length; index += batchSize) {
+            const batch = writeBatch(db);
+            predictionUpdates.slice(index, index + batchSize).forEach(({ ref, points }) => {
+                batch.update(ref, { pointsEarned: points });
+            });
+            await batch.commit();
+        }
 
         // 3. Update all users' total points and exact results count (resetting those who might not have predictions anymore)
         const usersSnapshot = await getDocs(collection(db, "users"));

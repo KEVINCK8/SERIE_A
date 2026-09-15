@@ -1,9 +1,9 @@
 import { onAuthChange, login, register, logout, getUserData, changeUserPassword, deleteUserAccount, getAllUsers, adminUpdateUser, adminDeleteUser } from "./auth.js";
 import { showView, toggleLoading, showNotification, toggleAuthTabs, renderGiornataSelect, renderMatchdayScroll, getTeamLogo, updateMatchdayStatusCard } from "./ui.js";
 import { modalManager } from "./modal-manager.js";
-import { initPlayerMatchesLive, cleanupPlayerListeners } from "./player.js";
+import { initPlayerMatchesLive, cleanupPlayerListeners } from "./player.js?v=2.2.1";
 import { getLeaderboard, getMatchesByGiornata, getMatchdayLock, setMatchdayLock, removeMatchdayLock, getMatchdayConfig, updateMatchdayConfig, getActiveLockedMatchday, subscribeToMatches, subscribeToMatchdayConfig, subscribeToLeaderboard, subscribeToPredictions } from "./db-service.js";
-import { addMatch, updateMatchResult, resetMatchResult, calculatePoints, importCalendar, updateMatchDetails, toggleMatchDisabled } from "./admin.js";
+import { addMatch, updateMatchResult, resetMatchResult, calculatePoints, importCalendar, updateMatchDetails, toggleMatchDisabled } from "./admin.js?v=2.2.1";
 import { db } from "./firebase-config.js";
 import { ICON_FILES } from "./icon-manifest.js";
 import { collection, query, where, orderBy, limit, getDocs, onSnapshot, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
