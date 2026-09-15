@@ -3,7 +3,7 @@ import { showView, toggleLoading, showNotification, toggleAuthTabs, renderGiorna
 import { modalManager } from "./modal-manager.js";
 import { initPlayerMatchesLive, cleanupPlayerListeners } from "./player.js?v=2.2.1";
 import { getLeaderboard, getMatchesByGiornata, getMatchdayLock, setMatchdayLock, removeMatchdayLock, getMatchdayConfig, updateMatchdayConfig, getActiveLockedMatchday, subscribeToMatches, subscribeToMatchdayConfig, subscribeToLeaderboard, subscribeToPredictions } from "./db-service.js";
-import { addMatch, updateMatchResult, resetMatchResult, calculatePoints, importCalendar, updateMatchDetails, toggleMatchDisabled } from "./admin.js?v=2.2.1";
+import { addMatch, updateMatchResult, resetMatchResult, calculatePoints, importCalendar, updateMatchDetails, toggleMatchDisabled, recalculateUserMatchPoints } from "./admin.js?v=2.2.2";
 import { db } from "./firebase-config.js";
 import { ICON_FILES } from "./icon-manifest.js";
 import { collection, query, where, orderBy, limit, getDocs, onSnapshot, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
@@ -698,7 +698,33 @@ async function showUserProfile(user) {
                     <div style="font-weight: 900; font-size: 1.2rem; margin-bottom: 8px;">${hasPrediction ? `${pred.homeScorePred} - ${pred.awayScorePred}` : 'N.P.'}</div>
                     ${isFinished && hasPrediction ? `<div class="points-badge">+${pred.pointsEarned || 0} PUNTI</div>` : ''}
                 </div>
+                ${isAdminUser() && isFinished && hasPrediction ? `
+                    <button class="btn-recalculate-user-match btn-secondary" style="width: 100%; margin-top: 12px;">
+                        <img src="assets/image/icon/045-play.png" style="width: 16px; margin-right: 7px; transform: rotate(-90deg);"> Ricalcola questa partita
+                    </button>
+                ` : ''}
             `;
+
+            const recalculateButton = card.querySelector('.btn-recalculate-user-match');
+            if (recalculateButton) {
+                recalculateButton.onclick = () => {
+                    modalManager.confirm(
+                        "Ricalcola punti utente",
+                        `Vuoi ricalcolare ${match.homeTeam} - ${match.awayTeam}? Verranno aggiornati i punti di questo utente e i suoi totali nel database.`,
+                        async () => {
+                            toggleLoading(true);
+                            const result = await recalculateUserMatchPoints(user.uid, match.id);
+                            toggleLoading(false);
+
+                            if (result.success) {
+                                showNotification(`Punteggio aggiornato: +${result.points} punti. Totale utente: ${result.totalPoints}.`, "success");
+                            } else {
+                                showNotification(result.reason, "error");
+                            }
+                        }
+                    );
+                };
+            }
             container.appendChild(card);
         });
     };
@@ -1339,6 +1365,7 @@ function initAdminMatchesLive() {
                         const success = await updateMatchResult(match.id, h, a);
                         toggleLoading(false);
                         if (success) showNotification("Risultato salvato e punti calcolati!", "success");
+                        else showNotification("Risultato salvato, ma il ricalcolo punti non è riuscito. Riprova e controlla i permessi admin.", "error");
                     }
                 );
             };

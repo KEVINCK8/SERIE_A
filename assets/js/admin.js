@@ -78,8 +78,7 @@ export const updateMatchResult = async (matchId, homeScore, awayScore) => {
         });
         clearCache();
         // Automatic points calculation
-        await calculatePoints(true); 
-        return true;
+        return await calculatePoints(true);
     } catch (error) {
         console.error("Error updating match result:", error);
         return false;
@@ -95,8 +94,7 @@ export const updateMatchDetails = async (matchId, data) => {
         });
         clearCache();
         // Se la disabilitazione è cambiata, ricalcoliamo i punti
-        await calculatePoints(true);
-        return true;
+        return await calculatePoints(true);
     } catch (error) {
         console.error("Error updating match details:", error);
         return false;
@@ -117,8 +115,7 @@ export const resetMatchResult = async (matchId) => {
         });
         clearCache();
         // Automatic points calculation
-        await calculatePoints(true);
-        return true;
+        return await calculatePoints(true);
     } catch (error) {
         console.error("Error resetting match result:", error);
         return false;
@@ -140,7 +137,7 @@ export const calculatePredictionScore = (match, prediction) => {
     ];
 
     // Evita di assegnare punti a documenti incompleti o con valori non validi.
-    if (!values.every(value => value !== '' && value !== null && value !== undefined && Number.isInteger(Number(value)) && Number(value) >= 0)) {
+    if (!values.every(value => value !== null && value !== undefined && String(value).trim() !== '' && Number.isInteger(Number(value)) && Number(value) >= 0)) {
         return { points: 0, isExact: false };
     }
 
@@ -219,10 +216,71 @@ export const calculatePoints = async (silent = false) => {
 
         clearCache();
         if (!silent) showNotification("Punteggi calcolati con successo!");
+        return true;
     } catch (error) {
         console.error("Error calculating points:", error);
         if (!silent) showNotification("Errore durante il calcolo dei punteggi.", "error");
+        return false;
     } finally {
         if (!silent) toggleLoading(false);
+    }
+};
+
+// Ricalcola un singolo profilo a partire da una partita selezionata dall'admin.
+// Vengono riallineati sia i punti dei pronostici dell'utente sia le sue statistiche aggregate.
+export const recalculateUserMatchPoints = async (userId, matchId) => {
+    try {
+        const [matchesSnapshot, predictionsSnapshot] = await Promise.all([
+            getDocs(query(collection(db, "matches"), where("status", "==", "finished"))),
+            getDocs(query(collection(db, "predictions"), where("userId", "==", userId)))
+        ]);
+
+        const matches = {};
+        matchesSnapshot.forEach(matchDoc => {
+            matches[matchDoc.id] = matchDoc.data();
+        });
+
+        const selectedMatch = matches[matchId];
+        const selectedPrediction = predictionsSnapshot.docs.find(predictionDoc => predictionDoc.data().matchId === matchId);
+        if (!selectedMatch || selectedMatch.disabled || !selectedPrediction) {
+            return { success: false, reason: "Partita o pronostico non disponibile per il ricalcolo." };
+        }
+
+        const predictionUpdates = [];
+        const stats = { points: 0, exact: 0 };
+
+        predictionsSnapshot.forEach(predictionDoc => {
+            const prediction = predictionDoc.data();
+            const { points, isExact } = calculatePredictionScore(matches[prediction.matchId], prediction);
+
+            stats.points += points;
+            if (isExact) stats.exact += 1;
+
+            if (prediction.pointsEarned !== points) {
+                predictionUpdates.push({ ref: predictionDoc.ref, points });
+            }
+        });
+
+        const batchSize = 450;
+        for (let index = 0; index < predictionUpdates.length; index += batchSize) {
+            const batch = writeBatch(db);
+            predictionUpdates.slice(index, index + batchSize).forEach(({ ref, points }) => {
+                batch.update(ref, { pointsEarned: points });
+            });
+            await batch.commit();
+        }
+
+        // Aggiorniamo sempre entrambe le statistiche del profilo, anche se una non è cambiata.
+        await updateDoc(doc(db, "users", userId), {
+            totalPoints: stats.points,
+            exactResultsCount: stats.exact
+        });
+
+        clearCache();
+        const selectedScore = calculatePredictionScore(selectedMatch, selectedPrediction.data());
+        return { success: true, points: selectedScore.points, totalPoints: stats.points, exactResults: stats.exact };
+    } catch (error) {
+        console.error("Error recalculating user match points:", error);
+        return { success: false, reason: "Errore durante il ricalcolo nel database." };
     }
 };
